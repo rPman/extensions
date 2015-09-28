@@ -1,7 +1,7 @@
 <project name="luwrain-ext-yatran" default="jar" basedir=".">
   <path id="classpath">
     <pathelement location="."/>
-     <fileset dir="lib">
+     <fileset dir="../lib">
       <include name="**/*.jar"/>
     </fileset>
   </path>
