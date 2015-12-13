@@ -17,24 +17,14 @@
 package org.luwrain.extensions.yatran;
 
 import org.luwrain.core.*;
-import org.luwrain.core.extensions.*;
+import org.luwrain.cpanel.*;
 
-public class Extension extends EmptyExtension
+public class ControlPanelSection extends SimpleFormSection
 {
-    private TranslateRegion translateRegion = null;
-    private ControlPanelSection section = null;
-
-    @Override public Command[] getCommands(Luwrain luwrain)
+    public ControlPanelSection(Registry registry)
     {
-	if (translateRegion == null)
-	    translateRegion = new TranslateRegion();
-	return new Command[]{translateRegion};
-    }
-
-    @Override public org.luwrain.cpanel.Section[] getControlPanelSections(Luwrain luwrain)
-    {
-	if (section == null)
-	    section = new ControlPanelSection(luwrain.getRegistry());
-	return new org.luwrain.cpanel.Section[]{section};
+	super("Яндекс.Переводчик", BasicSections.ROOT);
+	final RegistryParams params = RegistryProxy.create(registry, "/org/luwrain/extensions/yatran", RegistryParams.class);
+	addString("Ключ для доступа к сервису:", "", (name, value)->params.setKey(value));
     }
 }

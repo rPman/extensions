@@ -16,25 +16,8 @@
 
 package org.luwrain.extensions.yatran;
 
-import org.luwrain.core.*;
-import org.luwrain.core.extensions.*;
-
-public class Extension extends EmptyExtension
+interface RegistryParams
 {
-    private TranslateRegion translateRegion = null;
-    private ControlPanelSection section = null;
-
-    @Override public Command[] getCommands(Luwrain luwrain)
-    {
-	if (translateRegion == null)
-	    translateRegion = new TranslateRegion();
-	return new Command[]{translateRegion};
-    }
-
-    @Override public org.luwrain.cpanel.Section[] getControlPanelSections(Luwrain luwrain)
-    {
-	if (section == null)
-	    section = new ControlPanelSection(luwrain.getRegistry());
-	return new org.luwrain.cpanel.Section[]{section};
-    }
+    String getKey();
+    void setKey(String value);
 }
