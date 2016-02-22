@@ -39,7 +39,7 @@ class TranslateRegion implements Command
 	    luwrain.message("Не задан ключ для доступа к функциям переводчика", Luwrain.MESSAGE_ERROR);//FIXME:
 	    return;
 	}
-	final HeldData data = luwrain.currentAreaRegion(true);
+	final RegionContent data = luwrain.currentAreaRegion(true);
 	if (data == null)
 	    return;
 	final Client client = new Client(key);
