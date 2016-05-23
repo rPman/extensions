@@ -23,8 +23,10 @@ public class ControlPanelSection extends SimpleFormSection
 {
     public ControlPanelSection(Registry registry)
     {
-	super("Яндекс.Переводчик", BasicSections.ROOT);
+	super(null, "Яндекс.Переводчик");
 	final RegistryParams params = RegistryProxy.create(registry, "/org/luwrain/extensions/yatran", RegistryParams.class);
-	addString("Ключ для доступа к сервису:", "", (name, value)->params.setKey(value));
+	addString("Ключ для доступа к сервису:", 
+		  (name)->{return "";},
+		  (name, value)->params.setKey(value));
     }
 }
