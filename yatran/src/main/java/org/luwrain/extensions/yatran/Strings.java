@@ -1,5 +1,5 @@
 /*
-   Copyright 2012-2015 Michael Pozhidaev <michael.pozhidaev@gmail.com>
+   Copyright 2012-2016 Michael Pozhidaev <michael.pozhidaev@gmail.com>
 
    This file is part of the LUWRAIN.
 
@@ -16,8 +16,10 @@
 
 package org.luwrain.extensions.yatran;
 
-interface RegistryParams
+public interface Strings 
 {
-    String getKey();
-    void setKey(String value);
+    static public final String NAME = "luwrain.extensions.yatran";
+
+    String formName();
+    String formAccessKey();
 }

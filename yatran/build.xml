@@ -36,6 +36,9 @@
       <fileset dir="./build/main">
         <include name="**/*.class"/>
       </fileset>
+      <fileset dir="./src/main/resources">
+        <include name="**/*.properties"/>
+      </fileset>
     </jar>
   </target>
 

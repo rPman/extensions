@@ -1,5 +1,5 @@
 /*
-   Copyright 2012-2015 Michael Pozhidaev <michael.pozhidaev@gmail.com>
+   Copyright 2012-2016 Michael Pozhidaev <michael.pozhidaev@gmail.com>
 
    This file is part of the LUWRAIN.
 
@@ -17,16 +17,17 @@
 package org.luwrain.extensions.yatran;
 
 import org.luwrain.core.*;
-import org.luwrain.cpanel.*;
 
-public class ControlPanelSection extends SimpleFormSection
+interface Settings
 {
-    public ControlPanelSection(Registry registry)
+    static public final String REGISTRY_PATH = "/org/luwrain/extensions/yatran";
+
+    String getKey(String defValue);
+    void setKey(String value);
+
+    static Settings create(Registry registry)
     {
-	super(null, "Яндекс.Переводчик");
-	final RegistryParams params = RegistryProxy.create(registry, "/org/luwrain/extensions/yatran", RegistryParams.class);
-	addString("Ключ для доступа к сервису:", 
-		  (name)->{return "";},
-		  (name, value)->params.setKey(value));
+	NullCheck.notNull(registry, "registry");
+	return RegistryProxy.create(registry, REGISTRY_PATH, Settings.class);
     }
 }
