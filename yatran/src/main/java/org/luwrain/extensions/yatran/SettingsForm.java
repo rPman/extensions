@@ -43,6 +43,28 @@ class SettingsForm extends FormArea implements SectionArea
 	addEdit("key", strings.formAccessKey(), settings.getKey(""));
     }
 
+    @Override public boolean onKeyboardEvent(KeyboardEvent event)
+    {
+	NullCheck.notNull(event, "event");
+	if (controlPanel.onKeyboardEvent(event))
+	    return true;
+	return super.onKeyboardEvent(event);
+    }
+
+    @Override public boolean onEnvironmentEvent(EnvironmentEvent event)
+    {
+	NullCheck.notNull(event, "event");
+	if (controlPanel.onEnvironmentEvent(event))
+	    return true;
+	return super.onEnvironmentEvent(event);
+    }
+
+    @Override public boolean saveSectionData()
+    {
+	return true;
+    }
+
+
     static SettingsForm create(ControlPanel controlPanel)
     {
 	NullCheck.notNull(controlPanel , "controlPanel");
