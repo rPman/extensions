@@ -1,0 +1,53 @@
+﻿<html>
+<head>
+</head>
+<body>
+
+<h3>Файлы и каталоги в архиве</h3>
+<ul>
+<li>odt &ndash; этот документ</li>
+<li>Каталог exec &ndash; каталог, в котором будут размещены собранные файлы проекта (dll и jar)</li>
+<li>Каталог SAPIImpl.java &ndash; рабочая область среды разработки eclipse
+<ul>
+<li>luwrain.windows.speech &ndash; пакет, содержит единственный класс SAPIImpl</li>
+<li>SAPIImplTest &ndash; содержит класс для запуска тестового приложения</li>
+</ul>
+</li>
+<li>Каталог SAPIImpl.cpp &ndash; проекты Visual Studio
+<ul>
+<li>SAPIImpl - исходные файлы динамической библиотеки dll для вызова методов SAPI</li>
+<li>ExportConstants - исходные файлы утилиты формирования java класса с иннициализацией констант SAPI</li>
+</ul>
+</li>
+<li>SAPIImpl\org_luwrain_windows_speech_SAPIImpl.h &ndash; автоматически созданный файл заголовков методов c++ (формируется автоматически с помощью dosyncmake.bat)</li>
+<li>файл dosyncmake.bat &ndash; BATCH-программа, выполняющая различные операции по переносу необходимых файлов между проектами java и c++, эту утилиту необходимо запускать как минимум после структурных изменений в любом из проектах<br />
+<ul>
+<li>генерирует заголовочнй файл из класса JNI проекта java для cpp</li>
+<li>генерирует класс java с константами из SAPI с помощью утилиты ExportConstants</li>
+<li>копирует собранные dll (пока использует debug версии) и переименовывает их как 32 и 64, для соответствующих архитектур</li>
+<li>собирает jar файл</li>
+</ul>
+</li>
+</ul>
+<h3>Инструкция по сборке проекта</h3>
+<ol>
+<li>Распаковать архив в пустой каталог, например, C:\Work\ (в нем появятся каталоги SAPIImpl.cpp, SAPIImpl.java, файл dosyncmake.bat и т.п.)</li>
+<li>Запустить eclipse и указать рабочим каталогом каталог C:\Work\SAPIImpl.java\</li>
+<li>Выбрать в меню Project -&gt; Build All</li>
+<li>Запустить BATCH-файл dosyncmake.bat (при первом запуске возможны ошибки копирования).<br /> <em>это необходимо для обновления заголовочного файла методов </em><em>JNI</em></li>
+<li>Запустить Microsoft Visual Studio и открыть проект C:\Work\SAPIImpl.cpp\ SAPIImpl.sln</li>
+<li>Выбрать в тулбаре выбора текущей конфигурации (когда выбирают Debug/Release) меню Configuration Manager и сменить платформу для проекта SAPIImpl на x64 (если этого выбора нет, то его можно добавить, выбрав New, затем выбрав New Platform -&gt; x64)</li>
+<li>Вызвать сборку проекта (Ctrl+Shift+B либо через меню Build -&gt; Build Solution)</li>
+<li>Снова открыть Configuration manager и сменить платформу на Win32</li>
+<li>Еще раз вызвать сборку проекта в Visual Studio</li>
+<li>Повторно запустить BATCH-файл dosyncmake.bat<br /> это скопирует dll файлы и соберет jar файл</li>
+</ol>
+<h3>Запуск тестов</h3>
+<p>(пути к java могут отличаться на вашей машине, в зависимости от установленной версии)</p>
+<ul>
+<li>Запуск 32-битной версии<br /> "C:\Program Files (x86)\Java\jre8.0_31\bin\java.exe" -jar SAPIImplTest.jar</li>
+<li>Запуск 64-битной версии<br /> "C:\Program Files\Java\jre1.8.0_31\bin\java.exe" -jar SAPIImplTest.jar</li>
+</ul>
+
+</body>
+</html>
