@@ -1,4 +1,4 @@
-<project name="luwrain-ext-voiceman" default="jar" basedir=".">
+<project name="luwrain-ext-cmdtts" default="jar" basedir=".">
   <path id="classpath">
     <pathelement location="."/>
      <fileset dir="../lib">
@@ -24,10 +24,10 @@
   </target>
   <target name="jar" depends="compile">
     <mkdir dir="jar"/>
-    <jar jarfile="jar/luwrain-ext-voiceman.jar">
+    <jar jarfile="jar/luwrain-ext-cmdtts.jar">
       <manifest>
         <section name="org/luwrain">
-          <attribute name="Extensions" value="org.luwrain.extensions.voiceman.Extension"/>
+          <attribute name="Extensions" value="org.luwrain.extensions.cmdtts.Extension"/>
         </section>
       </manifest>
       <fileset dir="./build/main">

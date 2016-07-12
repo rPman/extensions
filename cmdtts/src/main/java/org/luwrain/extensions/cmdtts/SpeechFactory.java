@@ -1,5 +1,20 @@
+/*
+   Copyright 2012-2016 Michael Pozhidaev <michael.pozhidaev@gmail.com>
 
-package org.luwrain.extensions.voiceman;
+   This file is part of the LUWRAIN.
+
+   LUWRAIN is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public
+   License as published by the Free Software Foundation; either
+   version 3 of the License, or (at your option) any later version.
+
+   LUWRAIN is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+*/
+
+package org.luwrain.extensions.cmdtts;
 
 import org.luwrain.core.*;
 import org.luwrain.speech.*;
@@ -17,12 +32,12 @@ SpeechFactory(Luwrain luwrain)
 
     @Override public String getServedChannelType()
     {
-	return "voiceman";
+	return "command";
     }
 
     @Override public Channel newChannel()
     {
-	return new VoiceMan();
+	return new Command();
     }
 
     @Override public org.luwrain.cpanel.Section newSettingsSection(org.luwrain.cpanel.Element el, String registryPath)
