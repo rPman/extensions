@@ -22,10 +22,10 @@ interface Settings
 {
 	boolean getDefault(boolean defValue);
 	String getName(String defValue);
-    String getPath(String defValue);
+    String getCommand(String defValue);
     void setDefault(boolean value);
     void setName(String value);
-    void setPath(String value);
+    void setCommand(String value);
 
     static Settings create(Registry registry, String path)
     {

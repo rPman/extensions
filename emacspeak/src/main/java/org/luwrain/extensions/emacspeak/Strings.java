@@ -22,6 +22,6 @@ public interface Strings
 
     String formName();
     String formChannelName();
-    String formPath();
+    String formCommand();
     String formDefault();
 }

@@ -116,7 +116,20 @@ static private class Current
     @Override public boolean initByArgs(String[] args)
     {
 	NullCheck.notNullItems(args, "args");
-	return false;
+	if (args.length >= 1)
+	    toSpeakersCommand = args[0];
+	if (args.length >= 2)
+	    name = args[1];
+	if (args.length >= 3 && args[2].trim().toLowerCase().equals("default"))
+	    def = true; else
+	    def = false;
+	if (name.isEmpty())
+	    name = "Command (" + toSpeakersCommand + ")";
+	Log.debug("cmdtts", "command channel \'" + name + "\' initialized with strings arguments");
+	task = createTask();
+	Log.debug("cmdtts", "starting service thread for channel \'" + name + "\'");
+	executor.execute(task);
+	return true;
     }
 
     @Override public PuncMode getCurrentPuncMode()

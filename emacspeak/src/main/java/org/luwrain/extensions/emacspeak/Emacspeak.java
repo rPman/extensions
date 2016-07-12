@@ -23,15 +23,8 @@ import javax.sound.sampled.AudioFormat;
 import org.luwrain.speech.*;
 import org.luwrain.core.*;
 
-public class Emacspeak implements Channel
+class Emacspeak implements Channel
 {
-    private interface Options
-    {
-	boolean getDefault(boolean defValue);
-	String getName(String defValue);
-	String getCommand(String defValue);
-    }
-
     private long nextId = 1;
     private boolean def = false;
     private String name = "";
@@ -46,31 +39,23 @@ public class Emacspeak implements Channel
     {
 	NullCheck.notNull(registry, "registry");
 	NullCheck.notNull(path, "path");
-	try {
-	    final Options options = RegistryProxy.create(registry, path, Options.class);
-	    name = options.getName(name);
-	    command = options.getCommand(command);
-	    def = options.getDefault(def);
-	}
-	catch (Exception e)
-	{
-	    Log.error("linux", "unexpected error while initializing the emacspeak speech channel from registry path " + path + ":" + e.getMessage());
-	    e.printStackTrace();
-	    return false;
-	}
+	final Settings settings = Settings.create(registry, path);
+	name = settings.getName("???");
+	command = settings.getCommand("");
+	def = settings.getDefault(false);
 	if (command.trim().isEmpty())
 	{
-	    Log.error("linux", "unable to initialize emacspeak speech channel  from registry path " + path + ":no command given");
+	    Log.error("emacspeak", "unable to initialize emacspeak speech channel  from registry path " + path + ":no command given");
 	    return false;
 	}
 	if (name.trim().isEmpty())
 	    name = "Emacspeak (" + command + ")";
 	if (!startProcess())
 	{
-	    Log.error("linux", "unable to start an emacspeak server for channel \'" + name + "\' by command \'" + command + "\'");
+	    Log.error("emacspeak", "unable to start an emacspeak server for channel \'" + name + "\' with command \'" + command + "\'");
 	    return false;
 	}
-	Log.debug("linux", "emacspeak speech channel with name \'" + name + "\' initialized, command=\'\'" + command + "\'");
+	Log.debug("emacspeak", "emacspeak speech channel with name \'" + name + "\' initialized, command=\'\'" + command + "\'");
 	return true;
     }
 
@@ -91,10 +76,10 @@ public class Emacspeak implements Channel
 	    name = "Emacspeak (" + command + ")";
 	if (!startProcess())
 	{
-	    Log.error("linux", "unable to start an emacspeak server for channel \'" + name + "\' by command \'" + command + "\'");
+	    Log.error("emacspeak", "unable to start an emacspeak server for channel \'" + name + "\' by command \'" + command + "\'");
 	    return false;
 	}
-	Log.debug("linux", "emacspeak speech channel with name \'" + name + "\' initialized, command=\'\'" + command + "\'");
+	Log.debug("emacspeak", "emacspeak speech channel with name \'" + name + "\' initialized, command=\'\'" + command + "\'");
 	return true;
     }
 
