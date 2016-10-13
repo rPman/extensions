@@ -16,12 +16,12 @@ SpeechFactory(Luwrain luwrain)
 
     @Override public String getServedChannelType()
     {
-	return "voiceman";
+	return "sapi";
     }
 
     @Override public Channel newChannel()
     {
-	return null;
+    	return new SapiChannel();
     }
 
     @Override public org.luwrain.cpanel.Section newSettingsSection(org.luwrain.cpanel.Element el, String registryPath)

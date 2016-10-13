@@ -8,7 +8,7 @@
 
 #include <map>
 
-#include "org_luwrain_windows_speech_SAPIImpl.h"
+#include "jni_SAPIImpl.h"
 
 // классы помошники
 // автоматически очищяет память указанного объекта, созданного с помощью new
@@ -97,7 +97,33 @@ public:
 		hr = cpToken->GetId(id);
 		// получаем описание токена (наименование голоса)
 		SpGetDescription(cpToken, &lastVoiceToketDescription, NULL);
-
+		// отладочная информация по токену:
+		/*
+		LPWSTR k,v;
+		int i = 0;
+		wprintf(L"SAPI: %s:\n* keys:", lastVoiceToketDescription);
+		while (true)
+		{
+			k = NULL;
+			cpToken->EnumKeys(i, &k);
+			if (k == NULL) break;
+			wprintf(L" '%s'", k);
+			i++;
+		}
+		wprintf(L"\n* values:", lastVoiceToketDescription);
+		i = 0;
+		while (true)
+		{
+			v = NULL;
+			cpToken->EnumValues(i, &v);
+			if (v == NULL) break;
+			wprintf(L" '%s'", v);
+			i++;
+		}
+		wprintf(L"\n");
+		fflush(stdout);
+		//CoMemTaskFree;
+		*/
 	}
 	jint speak(jchar* text, jint flags)
 	{
@@ -176,14 +202,14 @@ void release_impl(JNIEnv * jni,jobject &jthis)
 	sList.erase(it);
 }
 
-JNIEXPORT jstring JNICALL Java_org_luwrain_windows_speech_SAPIImpl_getLastVoiceDescription(JNIEnv * jni, jobject jthis)
+JNIEXPORT jstring JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_getLastVoiceDescription(JNIEnv * jni, jobject jthis)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	if (impl.lastVoiceToketDescription == NULL) return NULL;
 	// формируем строку для возврата в java
 	return jni->NewString((jchar*)impl.lastVoiceToketDescription, (jsize)wcslen(impl.lastVoiceToketDescription));
 }
-JNIEXPORT jstring JNICALL Java_org_luwrain_windows_speech_SAPIImpl_getNextVoiceIdFromList(JNIEnv * jni, jobject jthis)
+JNIEXPORT jstring JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_getNextVoiceIdFromList(JNIEnv * jni, jobject jthis)
 {
 	SAPIImpl& impl = make_impl(jni,jthis);
 	//
@@ -194,14 +220,14 @@ JNIEXPORT jstring JNICALL Java_org_luwrain_windows_speech_SAPIImpl_getNextVoiceI
 	// формируем строку для возврата в java
 	return jni->NewString((jchar*)id, (jsize)wcslen(id));
 }
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_selectCurrentVoice(JNIEnv * jni, jobject jthis)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_selectCurrentVoice(JNIEnv * jni, jobject jthis)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	//
 	// выбираем текущий токен
 	return impl.selectCurrentVoice();
 }
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_selectVoiceById(JNIEnv * jni, jobject jthis, jstring jtext)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_selectVoiceById(JNIEnv * jni, jobject jthis, jstring jtext)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	//
@@ -214,7 +240,7 @@ JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_selectVoiceById(
 	// выбираем токен по идентификатору
 	return impl.selectVoiceById(text);
 }
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_searchVoiceByAttributes(JNIEnv * jni, jobject jthis, jstring jtext)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_searchVoiceByAttributes(JNIEnv * jni, jobject jthis, jstring jtext)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	//
@@ -229,7 +255,7 @@ JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_searchVoiceByAtt
 	// запрос на токены по критериям
 	return impl.searchVoiceToken(text);
 }
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_speak(JNIEnv * jni, jobject jthis, jstring jtext, jint flags)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_speak(JNIEnv * jni, jobject jthis, jstring jtext, jint flags)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	// выгружаем строку с условием
@@ -242,7 +268,7 @@ JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_speak(JNIEnv * j
 	return impl.speak(text, flags);
 }
 
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_stream(JNIEnv * jni, jobject jthis, jstring jstream, jint flags)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_stream(JNIEnv * jni, jobject jthis, jstring jstream, jint flags)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	// выгружаем строку с условием
@@ -259,19 +285,19 @@ JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_stream(JNIEnv * 
 	return impl.stream(stream, flags);
 }
 
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_rate(JNIEnv * jni, jobject jthis, jint rate)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_rate(JNIEnv * jni, jobject jthis, jint rate)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	return impl.set_rate(rate);
 }
 
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_pitch(JNIEnv * jni, jobject jthis, jint pitch)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_pitch(JNIEnv * jni, jobject jthis, jint pitch)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	return impl.set_pitch(pitch);
 }
 
-JNIEXPORT jint JNICALL Java_org_luwrain_windows_speech_SAPIImpl_wait(JNIEnv * jni, jobject jthis, jint timeout)
+JNIEXPORT jint JNICALL Java_org_luwrain_extensions_mssapi_SAPIImpl_wait(JNIEnv * jni, jobject jthis, jint timeout)
 {
 	SAPIImpl& impl = make_impl(jni, jthis);
 	return impl.wait_done(timeout);

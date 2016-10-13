@@ -35,7 +35,9 @@ class SAPIImpl extends SAPIImpl_constants
     static
     {
 	// загружаем динамическу библиотеку под текущую архитектуру (32 или 64 бита)
-    	System.loadLibrary("SAPIImpl."+System.getProperty("sun.arch.data.model"));
+    	String libname="SAPIImpl."+System.getProperty("sun.arch.data.model");
+    	System.loadLibrary(libname);
+    	System.out.println("sapi:jni dynamic library loaded "+libname);
     }
 
     static int idCounter = 0;
