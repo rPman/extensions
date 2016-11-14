@@ -196,8 +196,10 @@ static private class Current
     }
 
     @Override public long speak(String text, Listener listener,
-				int relPitch, int relRate)
+				int relPitch, int relRate, boolean cancelPrevious)
     {
+	if (cancelPrevious)
+	    silence();
 	final long id = nextId++;
 	try {
 	    chunks.put(new Chunk(id, listener, toSpeakersCommand, text));
@@ -210,8 +212,10 @@ static private class Current
     }
 
     @Override public long speakLetter(char letter, Listener listener,
- int relPitch, int relRate)
+				      int relPitch, int relRate, boolean cancelPrevious)
     {
+	if (cancelPrevious)
+	    silence();
 	final long id = nextId++;
 	try {
 	    chunks.put(new Chunk(id, listener, toSpeakersCommand, "" + letter));

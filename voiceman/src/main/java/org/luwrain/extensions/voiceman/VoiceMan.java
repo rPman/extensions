@@ -101,8 +101,10 @@ public class VoiceMan implements Channel
     }
 
     @Override public long speak(String text, Listener listener,
-				int relPitch, int relRate)
+				int relPitch, int relRate, boolean cancelPrevious)
     {
+	if (cancelPrevious)
+	    silence();
 	sendPitch(defaultPitch + relPitch);
 	sendRate(defaultRate + relRate);
 	sendText(text);
@@ -112,8 +114,10 @@ public class VoiceMan implements Channel
     }
 
     @Override public long speakLetter(char letter, Listener listener,
-				int relPitch, int relRate)
+				      int relPitch, int relRate, boolean cancelPrevious)
     {
+	if (cancelPrevious)
+	    silence();
 	sendPitch(defaultPitch + relPitch);
 	sendRate(defaultRate + relRate);
 	sendLetter(letter);
