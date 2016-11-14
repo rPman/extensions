@@ -129,19 +129,19 @@ public class SapiChannel implements Channel
 		impl.rate(Math.round((limit100(value)/5)-10));
     }
 
-    @Override public long speak(String text,Listener listener,int relPitch,int relRate)
+    @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
 	impl.pitch(limit100(curPitch+relPitch));
 	impl.rate(limit100(curPitch+relRate));
-	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML);
+	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
 	impl.pitch(curPitch);
 	impl.rate(curRate);
 	return -1;
     }
 
-    @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate)
+    @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-	return speak(""+letter,listener,relPitch,relRate);
+	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
     }
 
     @Override public boolean synth(String text,int pitch, int rate,
