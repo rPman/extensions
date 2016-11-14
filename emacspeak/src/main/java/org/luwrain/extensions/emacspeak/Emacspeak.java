@@ -142,8 +142,10 @@ class Emacspeak implements Channel
     }
 
     @Override public long speak(String text, Listener listener,
-				int relPitch, int relRate)
+				int relPitch, int relRate, boolean cancelPrevious)
     {
+	if (cancelPrevious)
+	    silence();
 	try {
 	    writer.write("q {" + text + "}\n");
 	    writer.write("d\n");
@@ -158,8 +160,10 @@ class Emacspeak implements Channel
     }
 
     @Override public long speakLetter(char letter, Listener listener,
- int relPitch, int relRate)
+				      int relPitch, int relRate, boolean cancelPrevious)
     {
+	if (cancelPrevious)
+	    silence();
 	try {
 	    writer.write("l {" + letter + "}\n");
 	writer.flush();
