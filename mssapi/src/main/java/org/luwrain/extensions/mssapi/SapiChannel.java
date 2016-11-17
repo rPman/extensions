@@ -25,7 +25,7 @@ public class SapiChannel implements Channel
 
     private final SAPIImpl impl = new SAPIImpl();
     private int curPitch = 100;
-    private int curRate = 50;
+    private int curRate = 60;
 
     private String name = "";
     private File tempFile;
@@ -66,8 +66,7 @@ public class SapiChannel implements Channel
     	int cnt=impl.searchVoiceByAttributes(args==null?null:String.join(";",args));
 	if(cnt == 0)
 	{
-	    Log.warning("windows", "no voice with specified attributes");
-	    return false;
+	    Log.warning("windows", "no voice with specified attributes, use default");
 	} else
 	    if(cnt == -1)
 	    {
@@ -121,21 +120,33 @@ public class SapiChannel implements Channel
 
     @Override public void setDefaultPitch(int value)
     {
-	impl.pitch(limit100(value));
+    	curPitch=limit100(value);
+    	impl.pitch(curPitch);
     }
 
+    /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
+    private int convRate(int rate100)
+    {
+    	return Math.round((10-rate100/5));
+    }
+    
     @Override public void setDefaultRate(int value)
     {
-		impl.rate(Math.round((limit100(value)/5)-10));
+    	curRate=limit100(value);
+		impl.rate(convRate(curRate));
     }
 
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-	impl.pitch(limit100(curPitch+relPitch));
-	impl.rate(limit100(curPitch+relRate));
+    if(relPitch!=0)
+    	impl.pitch(limit100(curPitch+relPitch));
+	if(relRate!=0)
+		impl.rate(convRate(limit100(curRate+relRate)));
 	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
-	impl.pitch(curPitch);
-	impl.rate(curRate);
+	if(relPitch!=0)
+		impl.pitch(curPitch);
+	if(relRate!=0)
+		impl.rate(convRate(curRate));
 	return -1;
     }
 
@@ -148,11 +159,15 @@ public class SapiChannel implements Channel
 				   AudioFormat format,OutputStream stream)
     {
 	impl.stream(tempFile.getPath(),chooseSAPIAudioFormatFlag(format));
-	impl.pitch(limit100(curPitch+pitch));
-	impl.rate(limit100(curPitch+rate));
+	if(pitch!=0)
+		impl.pitch(limit100(curPitch+pitch));
+	if(rate!=0)
+		impl.rate(convRate(limit100(curRate+rate)));
 	impl.speak(text,SAPIImpl_constants.SPF_IS_NOT_XML);
-	impl.pitch(curPitch);
-	impl.rate(curRate);
+	if(pitch!=0)
+		impl.pitch(curPitch);
+	if(rate!=0)
+		impl.rate(convRate(curRate));
 	impl.stream(null,SAPIImpl_constants.SPSF_Default);
 	//Copying the whole file to the stream, except of 44 wave header
 	try {
