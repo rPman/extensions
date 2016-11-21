@@ -3,6 +3,8 @@ package org.luwrain.extensions.rhvoice;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioFormat.Encoding;
@@ -34,7 +36,7 @@ public class RHvoiceChannel implements Channel
     static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
 	static final float RHVOICE_FRAME_RATE = 16000f; // 44100 samples/s
 
-    private final RHvoiceChannel impl = new RHvoiceChannel();
+    //private final RHvoiceChannel impl = new RHvoiceChannel();
     private int curPitch = 100;
     private int curRate = 60;
 
@@ -70,11 +72,17 @@ public class RHvoiceChannel implements Channel
     	// init tts	
 		try
 		{
-			tts=new TTSEngine();
+			Path currentRelativePath = Paths.get("");
+			String s = currentRelativePath.toAbsolutePath().toString();
+			System.out.println("Current relative path is: " + s);
+			
+			TTSEngine.init();
+			tts=new TTSEngine("C:\\luwrain\\rhvoice\\data","C:\\luwrain\\rhvoice\\config",new String[]{"data\\languages\\English","data\\languages\\Russian"},null);
 		} catch(RHVoiceException e)
 		{
 			Log.error("rhvoice", "unable to create rhvoice tts speach engine");
 			e.printStackTrace();
+			System.exit(0);
 			return false;
 		}
 		// select voice
@@ -122,30 +130,87 @@ public class RHvoiceChannel implements Channel
 			Log.error("rhvoice", "unable to init audio device");
 			e.printStackTrace();
 		}
-		TTSClient player=new TTSClient()
-		{
-			@Override public boolean playSpeech(short[] samples)
-			{
-				try
-				{
-			        final ByteBuffer buffer=ByteBuffer.allocate(samples.length*audioFormat.getFrameSize());
-			        buffer.order(ByteOrder.LITTLE_ENDIAN);
-			        buffer.asShortBuffer().put(samples);
-			        final byte[] bytes=buffer.array();
-			        // here execution would paused, if audioLine buffer is full
-			        audioLine.write(bytes,0,bytes.length);
-			        
-				} catch(Exception e)
-				{
-					e.printStackTrace();
-				}
-				return true;
-			}
-		};
-
 		return true;
     }
 
+    /** thread to speak can be restarted or looped (if last speak was stopped by new speak or silence)
+     * 
+     **/
+    class SpeakingThread implements Runnable
+    {
+    	Thread thread;
+    	String text=null;
+    	public boolean dobreak=false;
+    	public SpeakingThread()
+    	{
+			//thread=new Thread(threadRun);
+    	}
+    	public void speak(String text)
+    	{
+    		this.text=text;
+    			if(thread==null||!thread.isAlive())
+    			{
+    				thread=new Thread(threadRun);
+    				thread.start();
+    			} else
+    			{
+    				// TODO: check it in multithreading
+        			dobreak=true;
+    			}
+    	}
+		@Override public void run()
+		{
+			while(text!=null)
+			{
+				try
+				{
+					tts.speak(text,params,new TTSClient()
+					{
+						@Override public boolean playSpeech(short[] samples)
+						{
+							try
+							{
+						        final ByteBuffer buffer=ByteBuffer.allocate(samples.length*audioFormat.getFrameSize());
+						        buffer.order(ByteOrder.LITTLE_ENDIAN);
+						        buffer.asShortBuffer().put(samples);
+						        final byte[] bytes=buffer.array();
+						        // here execution would paused, if audioLine buffer is full
+						        audioLine.write(bytes,0,bytes.length);
+						        
+						        if(threadRun.dobreak)
+						        {
+						        	audioLine.flush();
+						        	return false;
+						        }
+						        
+							} catch(Exception e)
+							{
+								Log.error("rhvoice", "unable to speak");
+								e.printStackTrace();
+							}
+							return true;
+						}
+					});
+					// we need to set text to null if it is not break (if dobreak=true , text have new message to speak)
+					if(!dobreak)
+						text=null;
+					dobreak=false;
+					// finish speaking buffer
+			        audioLine.drain();
+			        //audioLine.close();
+				} catch(RHVoiceException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					// to avoid spam errors to log too fast
+					try {Thread.sleep(500);} catch(InterruptedException e1){}
+				}
+			}
+			// we close thread if nothing to speak
+		}
+    }
+    SpeakingThread threadRun=new SpeakingThread();
+    
     @Override public Voice[] getVoices()
     {
     	Voice[] voices=new Voice[tts.getVoices().size()];
@@ -173,13 +238,21 @@ public class RHvoiceChannel implements Channel
     @Override public void setDefaultPitch(int value)
     {
     	curPitch=limit100(value);
-    	params.setPitch(curPitch); // todo: check it
+    	params.setPitch(convPitch(curPitch)); // todo: check it
     }
 
+    final static double RHVOICE_RATE_MIN =0.5f;
+    final static double RHVOICE_RATE_MAX =2.0f;
+    final static double RHVOICE_PITCH_MIN=0.5f;
+    final static double RHVOICE_PITCH_MAX=2.0f;
     /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
-    private int convRate(int rate100)
-    {
-    	return Math.round((10-rate100/5));
+    private double convRate(int val100)
+    { // 0.2 ... 5
+    	return RHVOICE_RATE_MIN+(RHVOICE_RATE_MAX-RHVOICE_RATE_MIN)-(double)val100*(RHVOICE_RATE_MAX-RHVOICE_RATE_MIN)/100f;
+    }
+    private double convPitch(int val100)
+    { // 0.5 ... 2
+    	return RHVOICE_PITCH_MIN+(double)val100*(RHVOICE_PITCH_MAX-RHVOICE_PITCH_MIN)/100f;
     }
     
     @Override public void setDefaultRate(int value)
@@ -188,30 +261,6 @@ public class RHvoiceChannel implements Channel
 		params.setRate(convRate(curRate));
     }
 
-    /** thread to speak can be restarted or looped (if last speak was stopped by new speak or silence)
-     * 
-     **/
-    class SpeakingThread implements Runnable
-    {
-    	Thread thread;
-    	void execute()
-    	{
-    		if(threadRun==null)
-    		{
-    			threadRun=new SpeakingThread();
-    			thread=new Thread(threadRun);
-    		} else
-    		{
-    		}
-    		thread.start();
-    	}
-		@Override public void run()
-		{
-			
-		}
-    }
-    SpeakingThread threadRun=null;
-    
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
     	int defPitch=curPitch;
@@ -220,10 +269,9 @@ public class RHvoiceChannel implements Channel
     	setDefaultPitch(curPitch+relPitch);
 	if(relRate!=0)
     	setDefaultRate(curRate+relRate);
-	//
-	
-
-	//
+	// todo:add support for cancelPrevious=false 
+	threadRun.speak(text);
+	// 
 	if(relPitch!=0)
     	setDefaultPitch(defPitch);
 	if(relRate!=0)
@@ -244,7 +292,8 @@ public class RHvoiceChannel implements Channel
 
     @Override public void silence()
     {
-    	// FIXME:
+    	threadRun.text=null;
+    	threadRun.dobreak=true;
     }
 
     @Override public AudioFormat[] getSynthSupportedFormats()

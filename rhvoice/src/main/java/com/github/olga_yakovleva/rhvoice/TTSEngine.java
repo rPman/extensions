@@ -28,9 +28,12 @@ public final class TTSEngine
     private native VoiceInfo[] doGetVoices();
     private native void doSpeak(String text,SynthesisParameters params,TTSClient client) throws RHVoiceException;
 
-    static
+    static public void init()
     {
-        System.loadLibrary("RHVoice_jni");
+    	System.out.println("rhvoice:loading library");
+    	String libname="RHVoice."+System.getProperty("sun.arch.data.model");
+    	System.loadLibrary(libname);
+    	System.out.println("rhvoice:jni dynamic library loaded "+libname);
         onClassInit();
     }
 
