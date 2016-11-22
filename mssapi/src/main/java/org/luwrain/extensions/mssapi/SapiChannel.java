@@ -23,28 +23,14 @@ class SapiChannel implements Channel
     private String name = "";
     private File tempFile;
 
-    private String getAttrs(String[] cmdLine)
-    {
-	if (cmdLine == null)
-	    return null;
-	for(String s: cmdLine)
-	{
-	    if (s == null)
-		continue;
-	    if (s.startsWith(SAPI_ENGINE_PREFIX))
-		return s.substring(SAPI_ENGINE_PREFIX.length());
-	}
-	return null;
-    }
-
     @Override public boolean initByRegistry(Registry registry, String path)
     {
 	NullCheck.notNull(registry, "registry");
 	NullCheck.notEmpty(path, "path");
-    	    final Settings sett = Settings.create(registry, path);
-	    def = sett.getDefault(false);
-    	    name = sett.getName("");
-    	    final String cond = sett.getCond("");
+	final Settings sett = Settings.create(registry, path);
+	def = sett.getDefault(false);
+	name = sett.getName("");
+	final String cond = sett.getCond("");
 	return initByArgs(new String[]{cond});
     }
 
@@ -54,31 +40,103 @@ class SapiChannel implements Channel
     	int cnt=impl.searchVoiceByAttributes(args==null?null:String.join(";",args));
 	if(cnt == 0)
 	{
-	    Log.warning("windows", "no voice with specified attributes, use default");
+	    Log.warning(LOG_COMPONENT, "no voice with specified attributes, use default");
 	} else
 	    if(cnt == -1)
 	    {
-		Log.error("windows", "unable to find a suitable voice due to unexpected error");
+		Log.error(LOG_COMPONENT, "unable to find a suitable voice due to unexpected error");
 		return false;
 	    }
     	String voiceId = impl.getNextVoiceIdFromList();
 	int res = impl.selectCurrentVoice();
-		if(res != 0)
-		{
-		    Log.error("windows", "unable to select the voice which has been found");
-		    return false;
-		}
-		// FIXME: only for wav gen 
-		try {
-		    tempFile = File.createTempFile(name,"tmpwav");
-		} 
-		catch(IOException e)
-		{
-		    Log.error("windows", "unable to create a temporary file");
-		    e.printStackTrace();
-		    return false;
-		}
-		return true;
+	if(res != 0)
+	{
+	    Log.error(LOG_COMPONENT, "unable to select the voice which has been found");
+	    return false;
+	}
+	// FIXME: only for wav gen 
+	try {
+	    tempFile = File.createTempFile(name,"tmpwav");
+	} 
+	catch(IOException e)
+	{
+	    Log.error(LOG_COMPONENT, "unable to create a temporary file");
+	    e.printStackTrace();
+	    return false;
+	}
+	return true;
+    }
+
+    @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
+    {
+	NullCheck.notNull(text, "text");
+    if(relPitch!=0)
+    	impl.pitch(limit100(curPitch+relPitch));
+	if(relRate!=0)
+		impl.rate(convRate(limit100(curRate+relRate)));
+	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
+	if(relPitch!=0)
+		impl.pitch(curPitch);
+	if(relRate!=0)
+		impl.rate(convRate(curRate));
+	return -1;
+    }
+
+    @Override public boolean synth(String text,int pitch, int rate,
+				   AudioFormat format,OutputStream stream)
+    {
+	impl.stream(tempFile.getPath(),chooseSAPIAudioFormatFlag(format));
+	if(pitch!=0)
+		impl.pitch(limit100(curPitch+pitch));
+	if(rate!=0)
+		impl.rate(convRate(limit100(curRate+rate)));
+	impl.speak(text,SAPIImpl_constants.SPF_IS_NOT_XML);
+	if(pitch!=0)
+		impl.pitch(curPitch);
+	if(rate!=0)
+		impl.rate(convRate(curRate));
+	impl.stream(null,SAPIImpl_constants.SPSF_Default);
+	//Copying the whole file to the stream, except of 44 wave header
+	try {
+	    final FileInputStream is=new FileInputStream(tempFile.getPath());
+	    final byte[] buf=new byte[COPY_WAV_BUF_SIZE];
+	    while(true)
+	    {
+		final int len=is.read(buf);
+		if(len == -1)
+		    break;
+		stream.write(buf,0,len);
+	    }
+	} catch(Exception e)
+	{
+	    Log.warning(LOG_COMPONENT, "unable to copy synthesized data:" + e.getMessage());
+	    return false;
+	}
+	return true;
+    }
+
+    @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
+    {
+	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
+    }
+
+    @Override public void silence()
+    {
+    	impl.speak("", SAPIImpl.SPF_PURGEBEFORESPEAK);
+    }
+
+    @Override public AudioFormat[] getSynthSupportedFormats()
+    {
+	return null;
+    }
+
+    @Override public void setCurrentPuncMode(PuncMode mode)
+    {
+    }
+
+    @Override public PuncMode getCurrentPuncMode()
+    {
+	return null;
     }
 
     @Override public Voice[] getVoices()
@@ -112,98 +170,20 @@ class SapiChannel implements Channel
     	impl.pitch(curPitch);
     }
 
-    /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
-    private int convRate(int rate100)
-    {
-    	return Math.round((10-rate100/5));
-    }
-
     @Override public void setDefaultRate(int value)
     {
     	curRate=limit100(value);
 		impl.rate(convRate(curRate));
     }
 
-    @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
-    {
-	NullCheck.notNull(text, "text");
-    if(relPitch!=0)
-    	impl.pitch(limit100(curPitch+relPitch));
-	if(relRate!=0)
-		impl.rate(convRate(limit100(curRate+relRate)));
-	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
-	if(relPitch!=0)
-		impl.pitch(curPitch);
-	if(relRate!=0)
-		impl.rate(convRate(curRate));
-	return -1;
-    }
-
-    @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
-    {
-	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
-    }
-
-    @Override public boolean synth(String text,int pitch, int rate,
-				   AudioFormat format,OutputStream stream)
-    {
-	impl.stream(tempFile.getPath(),chooseSAPIAudioFormatFlag(format));
-	if(pitch!=0)
-		impl.pitch(limit100(curPitch+pitch));
-	if(rate!=0)
-		impl.rate(convRate(limit100(curRate+rate)));
-	impl.speak(text,SAPIImpl_constants.SPF_IS_NOT_XML);
-	if(pitch!=0)
-		impl.pitch(curPitch);
-	if(rate!=0)
-		impl.rate(convRate(curRate));
-	impl.stream(null,SAPIImpl_constants.SPSF_Default);
-	//Copying the whole file to the stream, except of 44 wave header
-	try {
-	    final FileInputStream is=new FileInputStream(tempFile.getPath());
-	    final byte[] buf=new byte[COPY_WAV_BUF_SIZE];
-	    while(true)
-	    {
-		final int len=is.read(buf);
-		if(len == -1)
-		    break;
-		stream.write(buf,0,len);
-	    }
-	} catch(Exception e)
-	{
-	    Log.warning("windows", "unable to copy synthesized data:" + e.getMessage());
-	    return false;
-	}
-	return true;
-    }
-
-    @Override public void silence()
-    {
-    	impl.speak("", SAPIImpl.SPF_PURGEBEFORESPEAK);
-    }
-
-    @Override public AudioFormat[] getSynthSupportedFormats()
-    {
-	return null;
-    }
-
-    @Override public void setCurrentPuncMode(PuncMode mode)
-    {
-    }
-
-    @Override public PuncMode getCurrentPuncMode()
-    {
-	return null;
-    }
-
     @Override public int getDefaultRate()
     {
-	return 0;
+	return curRate;
     }
 
     @Override public int getDefaultPitch()
     {
-	return 0;
+	return curPitch;
     }
 
     @Override public void setCurrentVoice(String name)
@@ -242,7 +222,7 @@ class SapiChannel implements Channel
 					if(format.getFrameRate()<=32000000) sapiaudio=SAPIImpl_constants.SPSF_32kHz8BitMono;else
 					    if(format.getFrameRate()<=44000000) sapiaudio=SAPIImpl_constants.SPSF_44kHz8BitMono;else
 						if(format.getFrameRate()<=48000000) sapiaudio=SAPIImpl_constants.SPSF_48kHz8BitMono;else
-						    Log.warning("sapi","Audioformat sample frame too big "+format.getFrameRate());
+						    Log.warning(LOG_COMPONENT, "Audioformat sample frame too big "+format.getFrameRate());
 	    } else
 		if(format.getSampleSizeInBits()==16)
 		{
@@ -255,10 +235,10 @@ class SapiChannel implements Channel
 					    if(format.getFrameRate()<=32000000) sapiaudio=SAPIImpl_constants.SPSF_32kHz16BitMono;else
 						if(format.getFrameRate()<=44000000) sapiaudio=SAPIImpl_constants.SPSF_44kHz16BitMono;else
 						    if(format.getFrameRate()<=48000000) sapiaudio=SAPIImpl_constants.SPSF_48kHz16BitMono;else
-							Log.warning("sapi","Audioformat sample frame too big "+format.getFrameRate());
+							Log.warning(LOG_COMPONENT, "Audioformat sample frame too big "+format.getFrameRate());
 		} else
 		{
-		    Log.warning("sapi","Audioformat sample size can be 8 or 16 bit, but specified "+format.getSampleSizeInBits());
+		    Log.warning(LOG_COMPONENT, "Audioformat sample size can be 8 or 16 bit, but specified "+format.getSampleSizeInBits());
 		}
 	} else
 	{ // stereo
@@ -273,7 +253,7 @@ class SapiChannel implements Channel
 					if(format.getFrameRate()<=32000000) sapiaudio=SAPIImpl_constants.SPSF_32kHz8BitStereo;else
 					    if(format.getFrameRate()<=44000000) sapiaudio=SAPIImpl_constants.SPSF_44kHz8BitStereo;else
 						if(format.getFrameRate()<=48000000) sapiaudio=SAPIImpl_constants.SPSF_48kHz8BitStereo;else
-						    Log.warning("sapi","Audioformat sample frame too big "+format.getFrameRate());
+						    Log.warning(LOG_COMPONENT, "Audioformat sample frame too big "+format.getFrameRate());
 	    } else
 		if(format.getSampleSizeInBits()==16)
 		{
@@ -286,12 +266,18 @@ class SapiChannel implements Channel
 					    if(format.getFrameRate()<=32000000) sapiaudio=SAPIImpl_constants.SPSF_32kHz16BitStereo;else
 						if(format.getFrameRate()<=44000000) sapiaudio=SAPIImpl_constants.SPSF_44kHz16BitStereo;else
 						    if(format.getFrameRate()<=48000000) sapiaudio=SAPIImpl_constants.SPSF_48kHz16BitStereo;else
-							Log.warning("sapi","Audioformat sample frame too big "+format.getFrameRate());
+							Log.warning(LOG_COMPONENT, "Audioformat sample frame too big "+format.getFrameRate());
 		} else
 		{
-		    Log.warning("sapi","Audioformat sample size can be 8 or 16 bit, but specified "+format.getSampleSizeInBits());
+		    Log.warning(LOG_COMPONENT, "Audioformat sample size can be 8 or 16 bit, but specified "+format.getSampleSizeInBits());
 		}
 	}
 	return sapiaudio;
+    }
+
+    /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
+    private int convRate(int rate100)
+    {
+    	return Math.round((10-rate100/5));
     }
 }
