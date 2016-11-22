@@ -5,7 +5,7 @@ mssapi/build
 rhvoice/build
 voiceman/build
 yatran/build
-
+lib
 cbr/jar
 cmdtts/jar
 emacspeak/jar
@@ -13,12 +13,3 @@ mssapi/jar
 rhvoice/jar
 voiceman/jar
 yatran/jar
-
-
-cbr/lib
-cmdtts/lib
-emacspeak/lib
-mssapi/lib
-rhvoice/lib
-voiceman/lib
-yatran/lib
