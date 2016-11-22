@@ -5,28 +5,21 @@ import java.io.*;
 import java.util.*;
 import javax.sound.sampled.AudioFormat;
 
-import org.luwrain.core.Log;
-import org.luwrain.core.Registry;
-import org.luwrain.core.RegistryProxy;
-import org.luwrain.speech.Channel;
-import org.luwrain.speech.Voice;
-import org.luwrain.speech.Channel.Features;
+import org.luwrain.core.*;
+import org.luwrain.speech.*;
 
-public class SapiChannel implements Channel
+class SapiChannel implements Channel
 {
+    static private final String LOG_COMPONENT = "mssapi";
+
     static private final String SAPI_ENGINE_PREFIX = "--sapi-engine=";
     static private final int COPY_WAV_BUF_SIZE=1024;
-
-    private interface RegOptions
-    {
-	String getName(String defValue);
-	String getCond();
-    }
 
     private final SAPIImpl impl = new SAPIImpl();
     private int curPitch = 100;
     private int curRate = 60;
 
+    private boolean def = false;
     private String name = "";
     private File tempFile;
 
@@ -46,23 +39,18 @@ public class SapiChannel implements Channel
 
     @Override public boolean initByRegistry(Registry registry, String path)
     {
-    	String cond;
-    	try {
-    	    final RegOptions options = RegistryProxy.create(registry, path, RegOptions.class);
-    	    name = options.getName(name);
-    	    cond = options.getCond();
-    	}
-    	catch (Exception e)
-    	{
-    	    Log.error("windows", "unexpected error while initializing the speech channel:" + e.getMessage());
-    	    e.printStackTrace();
-    	    return false;
-    	}
+	NullCheck.notNull(registry, "registry");
+	NullCheck.notEmpty(path, "path");
+    	    final Settings sett = Settings.create(registry, path);
+	    def = sett.getDefault(false);
+    	    name = sett.getName("");
+    	    final String cond = sett.getCond("");
 	return initByArgs(new String[]{cond});
     }
 
     @Override public boolean initByArgs(String[] args)
     {
+	NullCheck.notNullItems(args, "args");
     	int cnt=impl.searchVoiceByAttributes(args==null?null:String.join(";",args));
 	if(cnt == 0)
 	{
@@ -115,7 +103,7 @@ public class SapiChannel implements Channel
 
     @Override public boolean isDefault()
     {
-	return false;
+	return def;
     }
 
     @Override public void setDefaultPitch(int value)
@@ -129,7 +117,7 @@ public class SapiChannel implements Channel
     {
     	return Math.round((10-rate100/5));
     }
-    
+
     @Override public void setDefaultRate(int value)
     {
     	curRate=limit100(value);
@@ -138,6 +126,7 @@ public class SapiChannel implements Channel
 
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
+	NullCheck.notNull(text, "text");
     if(relPitch!=0)
     	impl.pitch(limit100(curPitch+relPitch));
 	if(relRate!=0)

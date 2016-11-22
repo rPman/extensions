@@ -5,12 +5,10 @@ import org.luwrain.core.*;
 
 interface Settings
 {
-    String getHost(String defValue);
-    void setHost(String value);
-    int getPort(int defValue);
-    void setPort(int value);
     String getName(String defValue);
     void setName(String value);
+    String getCond(String defValue);
+    void setCond(String defValue);
     boolean getDefault(boolean defValue);
     void setDefault(boolean value);
 

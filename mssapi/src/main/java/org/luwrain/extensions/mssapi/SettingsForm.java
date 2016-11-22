@@ -26,8 +26,8 @@ class SettingsForm extends FormArea implements SectionArea
     private void fillForm()
     {
 	addEdit("name", strings.formChannelName(), settings.getName(""));
-	addEdit("host", strings.formHost(), settings.getHost(""));
-	addEdit("port", strings.formPort(), "" + settings.getPort(1));
+	//	addEdit("host", strings.formHost(), settings.getHost(""));
+	//	addEdit("port", strings.formPort(), "" + settings.getPort(1));
 	addCheckbox("default", strings.formDefault(), settings.getDefault(false));
     }
 
