@@ -76,7 +76,7 @@ public class RHvoiceChannel implements Channel
 			System.out.println("Current relative path is: " + s);
 			
 			TTSEngine.init();
-			tts=new TTSEngine("rhvoice\\data","rhvoice\\config",new String[]{"data\\languages\\English","data\\languages\\Russian"},null);
+			tts=new TTSEngine("rhvoice"+File.separator+"data","rhvoice"+File.separator+"config",new String[]{"data"+File.separator+"languages"+File.separator+"English","data"+File.separator+"languages"+File.separator+"Russian"},null);
 		} catch(RHVoiceException e)
 		{
 			Log.error("rhvoice", "unable to create rhvoice tts speach engine");
