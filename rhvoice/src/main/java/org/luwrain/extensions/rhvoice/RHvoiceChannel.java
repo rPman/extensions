@@ -267,15 +267,16 @@ public class RHvoiceChannel implements Channel
 
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-    	int defPitch=curPitch;
-    	int defRate=curRate;
+   	int defPitch=curPitch;
+   	int defRate=curRate;
     if(relPitch!=0)
     	setDefaultPitch(curPitch+relPitch);
 	if(relRate!=0)
     	setDefaultRate(curRate+relRate);
 	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
-	threadRun.speak(SSML.upperCasePitchControl(text,UPPER_CASE_PITCH_MODIFIER));
+   	params.setSSMLMode(false);
+	threadRun.speak(text);
 	// 
 	if(relPitch!=0)
     	setDefaultPitch(defPitch);
@@ -286,7 +287,23 @@ public class RHvoiceChannel implements Channel
 
     @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
+   	int defPitch=curPitch;
+   	int defRate=curRate;
+    if(relPitch!=0)
+    	setDefaultPitch(curPitch+relPitch);
+   	if(relRate!=0)
+       	setDefaultRate(curRate+relRate);
+   	// make text string to xml with pitch change for uppercase
+   	// todo:add support for cancelPrevious=false
+   	params.setSSMLMode(true);
+   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER));
+   	// 
+   	if(relPitch!=0)
+       	setDefaultPitch(defPitch);
+   	if(relRate!=0)
+   		setDefaultRate(defRate);
+   	return -1;
+	//return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
     }
 
     @Override public boolean synth(String text,int pitch, int rate,

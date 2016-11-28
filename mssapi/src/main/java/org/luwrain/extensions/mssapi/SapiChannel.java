@@ -76,7 +76,7 @@ class SapiChannel implements Channel
 	if(relRate!=0)
 	    impl.rate(convRate(limit100(curRate+relRate)));
 	// 
-	impl.speak(SSML.upperCasePitchControl(text,UPPER_CASE_PITCH_MODIFIER),SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
+	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
 	if(relPitch!=0)
 	    impl.pitch(curPitch);
 	if(relRate!=0)
@@ -119,7 +119,20 @@ class SapiChannel implements Channel
 
     @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
+    	NullCheck.notNull(letter, "letter");
+    	if(relPitch!=0)
+    	    impl.pitch(limit100(curPitch+relPitch));
+    	if(relRate!=0)
+    	    impl.rate(convRate(limit100(curRate+relRate)));
+    	// 
+    	impl.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER),SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
+    	if(relPitch!=0)
+    	    impl.pitch(curPitch);
+    	if(relRate!=0)
+    	    impl.rate(convRate(curRate));
+    	return -1;
+
+	//return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
     }
 
     @Override public void silence()
