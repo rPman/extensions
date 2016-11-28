@@ -6,6 +6,7 @@ import java.util.*;
 import javax.sound.sampled.AudioFormat;
 
 import org.luwrain.core.*;
+import org.luwrain.extensions.rhvoice.SSML;
 import org.luwrain.speech.*;
 
 class SapiChannel implements Channel
@@ -171,7 +172,7 @@ class SapiChannel implements Channel
 
     @Override public Set<Features> getFeatures()
     {
-	return EnumSet.of(Features.CAN_SYNTH_TO_STREAM, Features.CAN_SYNTH_TO_SPEAKERS); // Features.CAN_NOTIFY_WHEN_FINISHED
+	return EnumSet.of(Features.CAN_SYNTH_TO_STREAM, Features.CAN_SYNTH_TO_SPEAKERS); // , Features.CAN_NOTIFY_WHEN_FINISHED 
     }
 
     @Override public boolean isDefault()

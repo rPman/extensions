@@ -17,9 +17,7 @@ import org.luwrain.core.NullCheck;
 import org.luwrain.core.Registry;
 import org.luwrain.core.RegistryProxy;
 import org.luwrain.speech.Channel;
-import org.luwrain.speech.SSML;
 import org.luwrain.speech.Voice;
-import org.luwrain.speech.Channel.Features;
 
 import com.github.olga_yakovleva.rhvoice.RHVoiceException;
 import com.github.olga_yakovleva.rhvoice.SynthesisParameters;
@@ -140,6 +138,7 @@ public class RHvoiceChannel implements Channel
      **/
     class SpeakingThread implements Runnable
     {
+    	Listener listener;
     	Thread thread;
     	String text=null;
     	public boolean dobreak=false;
@@ -147,18 +146,19 @@ public class RHvoiceChannel implements Channel
     	{
 			//thread=new Thread(threadRun);
     	}
-    	public void speak(String text)
+    	public void speak(String text,Listener listener)
     	{
+    		this.listener=listener;
     		this.text=text;
-    			if(thread==null||!thread.isAlive())
-    			{
-    				thread=new Thread(threadRun);
-    				thread.start();
-    			} else
-    			{
-    				// TODO: check it in multithreading
-        			dobreak=true;
-    			}
+			if(thread==null||!thread.isAlive())
+			{
+				thread=new Thread(threadRun);
+				thread.start();
+			} else
+			{
+				// TODO: check it in multithreading
+    			dobreak=true;
+			}
     	}
 		@Override public void run()
 		{
@@ -201,8 +201,10 @@ public class RHvoiceChannel implements Channel
 					// finish speaking buffer
 			        audioLine.drain();
 			        //audioLine.close();
+			        if(listener!=null) listener.onFinished(-1);
 				} catch(RHVoiceException e)
 				{
+					if(listener!=null) listener.onFinished(-1);
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					// to avoid spam errors to log too fast
@@ -276,7 +278,7 @@ public class RHvoiceChannel implements Channel
 	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
    	params.setSSMLMode(false);
-	threadRun.speak(text);
+	threadRun.speak(text,listener);
 	// 
 	if(relPitch!=0)
     	setDefaultPitch(defPitch);
@@ -296,7 +298,7 @@ public class RHvoiceChannel implements Channel
    	// make text string to xml with pitch change for uppercase
    	// todo:add support for cancelPrevious=false
    	params.setSSMLMode(true);
-   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER));
+   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER),listener);
    	// 
    	if(relPitch!=0)
        	setDefaultPitch(defPitch);
