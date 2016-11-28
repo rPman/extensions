@@ -6,7 +6,6 @@ import java.util.*;
 import javax.sound.sampled.AudioFormat;
 
 import org.luwrain.core.*;
-import org.luwrain.extensions.rhvoice.SSML;
 import org.luwrain.speech.*;
 
 class SapiChannel implements Channel
