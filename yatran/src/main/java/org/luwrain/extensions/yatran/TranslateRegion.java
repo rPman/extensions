@@ -32,8 +32,11 @@ class TranslateRegion implements Command
     @Override public void onCommand(Luwrain luwrain)
     {
 	final Registry registry = luwrain.getRegistry();
-	final RegistryAutoCheck check = new RegistryAutoCheck(registry);
-	final String key = check.stringAny(KEY_PATH, "");
+	//	final RegistryAutoCheck check = new RegistryAutoCheck(registry);
+	final String key;
+	if (registry.getTypeOf(KEY_PATH) == Registry.STRING)
+	    key = registry.getString(KEY_PATH); else
+	    key = "";
 	if (key == null || key.trim().isEmpty())
 	{
 	    luwrain.message("Не задан ключ для доступа к функциям переводчика", Luwrain.MESSAGE_ERROR);//FIXME:
