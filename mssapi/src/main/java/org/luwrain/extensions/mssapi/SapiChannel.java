@@ -6,10 +6,12 @@ import java.util.*;
 import javax.sound.sampled.AudioFormat;
 
 import org.luwrain.core.*;
+import org.luwrain.extensions.rhvoice.SSML;
 import org.luwrain.speech.*;
 
 class SapiChannel implements Channel
 {
+	static private final int UPPER_CASE_PITCH_MODIFIER=30;
     static private final String LOG_COMPONENT = "mssapi";
 
     static private final String SAPI_ENGINE_PREFIX = "--sapi-engine=";
@@ -74,6 +76,7 @@ class SapiChannel implements Channel
 	    impl.pitch(limit100(curPitch+relPitch));
 	if(relRate!=0)
 	    impl.rate(convRate(limit100(curRate+relRate)));
+	// 
 	impl.speak(text,SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_NOT_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
 	if(relPitch!=0)
 	    impl.pitch(curPitch);
@@ -117,7 +120,20 @@ class SapiChannel implements Channel
 
     @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
+    	NullCheck.notNull(letter, "letter");
+    	if(relPitch!=0)
+    	    impl.pitch(limit100(curPitch+relPitch));
+    	if(relRate!=0)
+    	    impl.rate(convRate(limit100(curRate+relRate)));
+    	// 
+    	impl.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER),SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
+    	if(relPitch!=0)
+    	    impl.pitch(curPitch);
+    	if(relRate!=0)
+    	    impl.rate(convRate(curRate));
+    	return -1;
+
+	//return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
     }
 
     @Override public void silence()
@@ -156,7 +172,7 @@ class SapiChannel implements Channel
 
     @Override public Set<Features> getFeatures()
     {
-	return EnumSet.of(Features.CAN_SYNTH_TO_STREAM, Features.CAN_SYNTH_TO_SPEAKERS); // Features.CAN_NOTIFY_WHEN_FINISHED
+	return EnumSet.of(Features.CAN_SYNTH_TO_STREAM, Features.CAN_SYNTH_TO_SPEAKERS); // , Features.CAN_NOTIFY_WHEN_FINISHED 
     }
 
     @Override public boolean isDefault()

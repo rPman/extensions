@@ -10,17 +10,14 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioFormat.Encoding;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
-import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 import org.luwrain.core.Log;
 import org.luwrain.core.NullCheck;
 import org.luwrain.core.Registry;
 import org.luwrain.core.RegistryProxy;
-import org.luwrain.core.events.RunnableEvent;
 import org.luwrain.speech.Channel;
 import org.luwrain.speech.Voice;
-import org.luwrain.speech.Channel.Features;
 
 import com.github.olga_yakovleva.rhvoice.RHVoiceException;
 import com.github.olga_yakovleva.rhvoice.SynthesisParameters;
@@ -30,14 +27,16 @@ import com.github.olga_yakovleva.rhvoice.VoiceInfo;
 
 public class RHvoiceChannel implements Channel
 {
-    //static private final String RHVOICE_ENGINE_PREFIX = "--rhvoice-data-path=";
+	static private final int UPPER_CASE_PITCH_MODIFIER=30;
+
+	//static private final String RHVOICE_ENGINE_PREFIX = "--rhvoice-data-path=";
     static private final String RHVOICE_DATA_PATH = "rhvoice";
     static private final int COPY_WAV_BUF_SIZE=1024;
     static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
 	static final float RHVOICE_FRAME_RATE = 16000f; // 44100 samples/s
 
     //private final RHvoiceChannel impl = new RHvoiceChannel();
-    private int curPitch = 100;
+    private int curPitch = 30;
     private int curRate = 60;
 
     private String name = "";
@@ -116,6 +115,7 @@ public class RHvoiceChannel implements Channel
 				voiceName=ruVoice+"+"+enVoice;
 		}
 		params.setVoiceProfile(voiceName);
+		params.setSSMLMode(true);
 		Log.debug("rhvoice", "selected voice: "+voiceName);
     	// audio device and player
 		try
@@ -138,6 +138,7 @@ public class RHvoiceChannel implements Channel
      **/
     class SpeakingThread implements Runnable
     {
+    	Listener listener;
     	Thread thread;
     	String text=null;
     	public boolean dobreak=false;
@@ -145,18 +146,19 @@ public class RHvoiceChannel implements Channel
     	{
 			//thread=new Thread(threadRun);
     	}
-    	public void speak(String text)
+    	public void speak(String text,Listener listener)
     	{
+    		this.listener=listener;
     		this.text=text;
-    			if(thread==null||!thread.isAlive())
-    			{
-    				thread=new Thread(threadRun);
-    				thread.start();
-    			} else
-    			{
-    				// TODO: check it in multithreading
-        			dobreak=true;
-    			}
+			if(thread==null||!thread.isAlive())
+			{
+				thread=new Thread(threadRun);
+				thread.start();
+			} else
+			{
+				// TODO: check it in multithreading
+    			dobreak=true;
+			}
     	}
 		@Override public void run()
 		{
@@ -187,6 +189,7 @@ public class RHvoiceChannel implements Channel
 							{
 								Log.error("rhvoice", "unable to speak");
 								e.printStackTrace();
+								return false;
 							}
 							return true;
 						}
@@ -198,12 +201,15 @@ public class RHvoiceChannel implements Channel
 					// finish speaking buffer
 			        audioLine.drain();
 			        //audioLine.close();
+			        if(listener!=null) listener.onFinished(-1);
 				} catch(RHVoiceException e)
 				{
+					if(listener!=null) listener.onFinished(-1);
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					// to avoid spam errors to log too fast
 					try {Thread.sleep(500);} catch(InterruptedException e1){}
+					return;
 				}
 			}
 			// we close thread if nothing to speak
@@ -263,14 +269,16 @@ public class RHvoiceChannel implements Channel
 
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-    	int defPitch=curPitch;
-    	int defRate=curRate;
+   	int defPitch=curPitch;
+   	int defRate=curRate;
     if(relPitch!=0)
     	setDefaultPitch(curPitch+relPitch);
 	if(relRate!=0)
     	setDefaultRate(curRate+relRate);
+	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
-	threadRun.speak(text);
+   	params.setSSMLMode(false);
+	threadRun.speak(text,listener);
 	// 
 	if(relPitch!=0)
     	setDefaultPitch(defPitch);
@@ -281,7 +289,23 @@ public class RHvoiceChannel implements Channel
 
     @Override public long speakLetter(char letter,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
-	return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
+   	int defPitch=curPitch;
+   	int defRate=curRate;
+    if(relPitch!=0)
+    	setDefaultPitch(curPitch+relPitch);
+   	if(relRate!=0)
+       	setDefaultRate(curRate+relRate);
+   	// make text string to xml with pitch change for uppercase
+   	// todo:add support for cancelPrevious=false
+   	params.setSSMLMode(true);
+   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER),listener);
+   	// 
+   	if(relPitch!=0)
+       	setDefaultPitch(defPitch);
+   	if(relRate!=0)
+   		setDefaultRate(defRate);
+   	return -1;
+	//return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
     }
 
     @Override public boolean synth(String text,int pitch, int rate,
