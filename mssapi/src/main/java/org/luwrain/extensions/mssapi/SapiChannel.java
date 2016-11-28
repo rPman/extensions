@@ -5,13 +5,12 @@ import java.io.*;
 import java.util.*;
 import javax.sound.sampled.AudioFormat;
 
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.luwrain.core.*;
 import org.luwrain.speech.*;
 
 class SapiChannel implements Channel
 {
-	static private final int UPPER_CASE_PITCH_MODIFIER=10;
+	static private final int UPPER_CASE_PITCH_MODIFIER=30;
     static private final String LOG_COMPONENT = "mssapi";
 
     static private final String SAPI_ENGINE_PREFIX = "--sapi-engine=";
@@ -76,18 +75,8 @@ class SapiChannel implements Channel
 	    impl.pitch(limit100(curPitch+relPitch));
 	if(relRate!=0)
 	    impl.rate(convRate(limit100(curRate+relRate)));
-	// make text string to xml with pitch change for uppercase
-	String xml=StringEscapeUtils.escapeXml11(text);
-	StringBuilder sb=new StringBuilder(xml.length());
-	for(char c:xml.toCharArray())
-	{
-		if(Character.isUpperCase(c))
-			sb.append("<pitch absmiddle='"+UPPER_CASE_PITCH_MODIFIER+"'>"+c+"</pitch>");
-		else
-			sb.append(c);
-	}
 	// 
-	impl.speak(sb.toString(),SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
+	impl.speak(SSML.upperCasePitchControl(text,UPPER_CASE_PITCH_MODIFIER),SAPIImpl_constants.SPF_ASYNC|SAPIImpl_constants.SPF_IS_XML|(cancelPrevious?SAPIImpl_constants.SPF_PURGEBEFORESPEAK:0));
 	if(relPitch!=0)
 	    impl.pitch(curPitch);
 	if(relRate!=0)
