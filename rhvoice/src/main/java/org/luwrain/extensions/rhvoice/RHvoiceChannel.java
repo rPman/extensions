@@ -233,7 +233,7 @@ public class RHvoiceChannel implements Channel
 
     @Override public Set<Features> getFeatures()
     {
-	return EnumSet.of(Features.CAN_SYNTH_TO_SPEAKERS); // Features.CAN_NOTIFY_WHEN_FINISHED
+	return EnumSet.of(Features.CAN_SYNTH_TO_SPEAKERS,Features.CAN_NOTIFY_WHEN_FINISHED); // 
     }
 
     @Override public boolean isDefault()
