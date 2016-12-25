@@ -69,12 +69,19 @@ SourceDataLine audioLine = null;
 	{
 	    Log.warning(LOG_COMPONENT, "unable to load RHVoice_core:" + e.getClass().getName() + ":" + e.getMessage());
 	}
-
 	try {
-	    Path currentRelativePath = Paths.get("");
-	    String s = currentRelativePath.toAbsolutePath().toString();
 	    TTSEngine.init();
-	    tts=new TTSEngine("rhvoice"+File.separator+"data","rhvoice"+File.separator+"config",new String[]{"data"+File.separator+"languages"+File.separator+"English","data"+File.separator+"languages"+File.separator+"Russian"},null);
+	    final Path dataPath = Paths.get("rhvoice", "data");
+	    final Path configPath = Paths.get("rhvoice", "config");
+	    Log.debug(LOG_COMPONENT, "data path:" + dataPath.toString());
+	    Log.debug(LOG_COMPONENT, "config path:" + configPath.toString());
+	    final Path enPath = Paths.get("data", "languages", "English");
+	    final Path ruPath = Paths.get("data", "languages", "Russian");
+	    //	    tts=new TTSEngine("rhvoice"+File.separator+"data","rhvoice"+File.separator+"config",new String[]{"data"+File.separator+"languages"+File.separator+"English","data"+File.separator+"languages"+File.separator+"Russian"},null);
+	    tts = new TTSEngine(dataPath.toString(), configPath.toString(), new String[]{
+		    enPath.toString(),
+		    ruPath.toString(),
+		}, null);
 	} 
 	catch(RHVoiceException e)
 	{
