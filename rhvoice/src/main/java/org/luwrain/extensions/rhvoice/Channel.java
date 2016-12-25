@@ -19,30 +19,28 @@ import org.luwrain.core.*;
 class Channel implements org.luwrain.speech.Channel
 {
     static private final String LOG_COMPONENT = "rhvoice";
-    	static private final int UPPER_CASE_PITCH_MODIFIER = 30;
 
-    //    static private final String RHVOICE_DATA_PATH = "rhvoice";
-    //    static private final int COPY_WAV_BUF_SIZE=1024;
+    	static private final int UPPER_CASE_PITCH_MODIFIER = 30;
         static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
 	static final float FRAME_RATE = 24000f;
 
-        final static double RHVOICE_RATE_MIN =0.5f;
-    final static double RHVOICE_RATE_MAX =2.0f;
-    final static double RHVOICE_PITCH_MIN=0.5f;
-    final static double RHVOICE_PITCH_MAX=2.0f;
-
+        static private final double RATE_MIN  = 0.5f;
+    static private final double RATE_MAX  = 2.0f;
+    static private final double PITCH_MIN = 0.5f;
+    static private final double PITCH_MAX = 2.0f;
 
     private int curPitch = 30;
     private int curRate = 60;
 
     private String name = "";
+    private boolean defaultChannel = false;
 
     private TTSEngine tts = null;
     private SynthesisParameters params = null;
     private AudioFormat audioFormat = null;
     private SourceDataLine audioLine = null;
 
-private final     SpeakingThread threadRun=new SpeakingThread();
+    private final     SpeakingThread threadRun=new SpeakingThread();
 
     @Override public boolean initByRegistry(Registry registry, String path)
     {
@@ -144,7 +142,7 @@ private final     SpeakingThread threadRun=new SpeakingThread();
     	final org.luwrain.speech.Voice[] voices=new org.luwrain.speech.Voice[tts.getVoices().size()];
     	int i = 0;
     	for(VoiceInfo voice:tts.getVoices())
-    		voices[i++]=new RHVoice(voice.getName());
+	    voices[i++]=new RHVoice(voice.getName());
     	return voices;
     }
 
@@ -169,20 +167,10 @@ private final     SpeakingThread threadRun=new SpeakingThread();
     	params.setPitch(convPitch(curPitch)); // todo: check it
     }
 
-    /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
-    private double convRate(int val100)
-    { // 0.2 ... 5
-    	return RHVOICE_RATE_MIN+(RHVOICE_RATE_MAX-RHVOICE_RATE_MIN)-(double)val100*(RHVOICE_RATE_MAX-RHVOICE_RATE_MIN)/100f;
-    }
-    private double convPitch(int val100)
-    { // 0.5 ... 2
-    	return RHVOICE_PITCH_MIN+(double)val100*(RHVOICE_PITCH_MAX-RHVOICE_PITCH_MIN)/100f;
-    }
-    
     @Override public void setDefaultRate(int value)
     {
     	curRate=limit100(value);
-		params.setRate(convRate(curRate));
+	params.setRate(convRate(curRate));
     }
 
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
@@ -190,18 +178,18 @@ private final     SpeakingThread threadRun=new SpeakingThread();
 	NullCheck.notNull(text, "text");
    	int defPitch=curPitch;
    	int defRate=curRate;
-    if(relPitch!=0)
-    	setDefaultPitch(curPitch+relPitch);
+	if(relPitch!=0)
+	    setDefaultPitch(curPitch+relPitch);
 	if(relRate!=0)
-    	setDefaultRate(curRate+relRate);
+	    setDefaultRate(curRate+relRate);
 	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
    	params.setSSMLMode(false);
 	threadRun.speak(text,listener, params, tts, audioFormat, audioLine);
 	if(relPitch != 0)
-    	setDefaultPitch(defPitch);
+	    setDefaultPitch(defPitch);
 	if(relRate != 0)
-		setDefaultRate(defRate);
+	    setDefaultRate(defRate);
 	return -1;
     }
 
@@ -209,18 +197,18 @@ private final     SpeakingThread threadRun=new SpeakingThread();
     {
    	int defPitch=curPitch;
    	int defRate=curRate;
-    if(relPitch!=0)
-    	setDefaultPitch(curPitch+relPitch);
+	if(relPitch!=0)
+	    setDefaultPitch(curPitch+relPitch);
    	if(relRate!=0)
-       	setDefaultRate(curRate+relRate);
+	    setDefaultRate(curRate+relRate);
    	// make text string to xml with pitch change for uppercase
    	// todo:add support for cancelPrevious=false
    	params.setSSMLMode(true);
    	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener, params, tts, audioFormat, audioLine);
    	if(relPitch!=0)
-       	setDefaultPitch(defPitch);
+	    setDefaultPitch(defPitch);
    	if(relRate!=0)
-   		setDefaultRate(defRate);
+	    setDefaultRate(defRate);
    	return -1;
     }
 
@@ -280,5 +268,17 @@ private final     SpeakingThread threadRun=new SpeakingThread();
 	if(value<0) value=0;
 	if(value>100) value=100;
 	return value;
+    }
+
+    private double convRate(int value)
+    {
+	final double range = RATE_MAX - RATE_MIN;
+    	return RATE_MIN + range - (double)value * range / 100f;
+    }
+
+    private double convPitch(int value)
+    { // 0.5 ... 2
+	final double range = PITCH_MAX - PITCH_MIN;
+    	return PITCH_MIN + (double)value * range / 100f;
     }
 }
