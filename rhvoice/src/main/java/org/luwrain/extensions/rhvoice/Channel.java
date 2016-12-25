@@ -235,7 +235,7 @@ private void runThread(String text, Listener listener)
     if (thread != null)
     {
 	thread.interrupt = true;
-while (!thread.finished);
+	//while (!thread.finished);
     }
     thread = new SpeakingThread(text, listener, this);
     new Thread(thread).start();
@@ -250,7 +250,10 @@ while (!thread.finished);
     @Override public void silence()
     {
 	if (thread != null)
+	{
 	    thread.interrupt = true;
+	    //	    while(!thread.finished);
+	}
 	thread = null;
 	}
 
