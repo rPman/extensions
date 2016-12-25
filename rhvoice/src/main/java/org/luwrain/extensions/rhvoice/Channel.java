@@ -35,10 +35,12 @@ class Channel implements org.luwrain.speech.Channel
     private String name = "";
     private boolean defaultChannel = false;
 
-    private TTSEngine tts = null;
-    private SynthesisParameters params = null;
-    private AudioFormat audioFormat = null;
-    private SourceDataLine audioLine = null;
+
+    //These variable are accessible for SpeakingThread
+TTSEngine tts = null;
+SynthesisParameters params = null;
+AudioFormat audioFormat = null;
+SourceDataLine audioLine = null;
 
     private final     SpeakingThread threadRun=new SpeakingThread();
 
@@ -60,6 +62,14 @@ class Channel implements org.luwrain.speech.Channel
     @Override public boolean initByArgs(String[] args)
     {
     	NullCheck.notNullItems(args,"rhvoice argument");
+	try {
+	    System.loadLibrary("RHVoice_core");
+	}
+	catch(Exception e)
+	{
+	    Log.warning(LOG_COMPONENT, "unable to load RHVoice_core:" + e.getClass().getName() + ":" + e.getMessage());
+	}
+
 	try {
 	    Path currentRelativePath = Paths.get("");
 	    String s = currentRelativePath.toAbsolutePath().toString();
@@ -185,7 +195,7 @@ class Channel implements org.luwrain.speech.Channel
 	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
    	params.setSSMLMode(false);
-	threadRun.speak(text,listener, params, tts, audioFormat, audioLine);
+	threadRun.speak(text,listener, this);
 	if(relPitch != 0)
 	    setDefaultPitch(defPitch);
 	if(relRate != 0)
@@ -204,7 +214,7 @@ class Channel implements org.luwrain.speech.Channel
    	// make text string to xml with pitch change for uppercase
    	// todo:add support for cancelPrevious=false
    	params.setSSMLMode(true);
-   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener, params, tts, audioFormat, audioLine);
+   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener, this);
    	if(relPitch!=0)
 	    setDefaultPitch(defPitch);
    	if(relRate!=0)
