@@ -33,7 +33,7 @@ public class RHvoiceChannel implements Channel
     static private final String RHVOICE_DATA_PATH = "rhvoice";
     static private final int COPY_WAV_BUF_SIZE=1024;
     static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
-	static final float RHVOICE_FRAME_RATE = 16000f; // 44100 samples/s
+	static final float RHVOICE_FRAME_RATE = 24000f; // 44100 samples/s
 
     //private final RHvoiceChannel impl = new RHvoiceChannel();
     private int curPitch = 30;
