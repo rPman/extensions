@@ -42,7 +42,7 @@ SynthesisParameters params = null;
 AudioFormat audioFormat = null;
 SourceDataLine audioLine = null;
 
-    private final     SpeakingThread threadRun=new SpeakingThread();
+    private SpeakingThread thread = null;
 
     @Override public boolean initByRegistry(Registry registry, String path)
     {
@@ -50,6 +50,7 @@ SourceDataLine audioLine = null;
 	NullCheck.notEmpty(path, "path");
 	final Settings sett = Settings.create(registry, path);
 	name = sett.getName("");
+	defaultChannel = sett.getDefault(false);
 	if (name.trim().isEmpty())
 	{
 	    Log.error(LOG_COMPONENT, "channel in " + path + " does not have any name");
@@ -175,7 +176,7 @@ SourceDataLine audioLine = null;
 
     @Override public boolean isDefault()
     {
-	return false;
+	return defaultChannel;
     }
 
     @Override public void setDefaultPitch(int value)
@@ -202,7 +203,7 @@ SourceDataLine audioLine = null;
 	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
    	params.setSSMLMode(false);
-	threadRun.speak(text,listener, this);
+	runThread(text,listener);
 	if(relPitch != 0)
 	    setDefaultPitch(defPitch);
 	if(relRate != 0)
@@ -221,13 +222,24 @@ SourceDataLine audioLine = null;
    	// make text string to xml with pitch change for uppercase
    	// todo:add support for cancelPrevious=false
    	params.setSSMLMode(true);
-   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener, this);
+	runThread(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener);
    	if(relPitch!=0)
 	    setDefaultPitch(defPitch);
    	if(relRate!=0)
 	    setDefaultRate(defRate);
    	return -1;
     }
+
+private void runThread(String text, Listener listener)
+{
+    if (thread != null)
+    {
+	thread.interrupt = true;
+while (!thread.finished);
+    }
+    thread = new SpeakingThread(text, listener, this);
+    new Thread(thread).start();
+	}
 
     @Override public boolean synth(String text,int pitch, int rate,
 				   AudioFormat format,OutputStream stream)
@@ -237,9 +249,10 @@ SourceDataLine audioLine = null;
 
     @Override public void silence()
     {
-    	threadRun.text = null;
-    	threadRun.interrupt = true;
-    }
+	if (thread != null)
+	    thread.interrupt = true;
+	thread = null;
+	}
 
     @Override public AudioFormat[] getSynthSupportedFormats()
     {
