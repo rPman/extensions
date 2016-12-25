@@ -36,6 +36,8 @@ class Channel implements org.luwrain.speech.Channel
     private AudioFormat audioFormat = null;
     private SourceDataLine audioLine = null;
 
+private final     SpeakingThread threadRun=new SpeakingThread();
+
     @Override public boolean initByRegistry(Registry registry, String path)
     {
 	NullCheck.notNull(registry, "registry");
@@ -55,165 +57,83 @@ class Channel implements org.luwrain.speech.Channel
     {
     	NullCheck.notNullItems(args,"rhvoice argument");
 	try {
-			Path currentRelativePath = Paths.get("");
-			String s = currentRelativePath.toAbsolutePath().toString();
-			TTSEngine.init();
-			tts=new TTSEngine("rhvoice"+File.separator+"data","rhvoice"+File.separator+"config",new String[]{"data"+File.separator+"languages"+File.separator+"English","data"+File.separator+"languages"+File.separator+"Russian"},null);
-		} 
-catch(RHVoiceException e)
-		{
-		    Log.error(LOG_COMPONENT, "rhvoice refuses to initialize:" + e.getClass().getName() + ":" + e.getMessage());
-			e.printStackTrace();
-			return false;
-		}
-		//Selecting the voice
+	    Path currentRelativePath = Paths.get("");
+	    String s = currentRelativePath.toAbsolutePath().toString();
+	    TTSEngine.init();
+	    tts=new TTSEngine("rhvoice"+File.separator+"data","rhvoice"+File.separator+"config",new String[]{"data"+File.separator+"languages"+File.separator+"English","data"+File.separator+"languages"+File.separator+"Russian"},null);
+	} 
+	catch(RHVoiceException e)
+	{
+	    Log.error(LOG_COMPONENT, "rhvoice refuses to initialize:" + e.getClass().getName() + ":" + e.getMessage());
+	    e.printStackTrace();
+	    return false;
+	}
+	//Selecting the voice
 	final String voiceName = (args.length > 0 && !args[0].isEmpty())?args[0]:suggestVoice();
-    if (voiceName.isEmpty())
-    {
-	Log.error(LOG_COMPONENT, "unable to choose suitable voice");
-	return false;
-    }
-		Log.debug(LOG_COMPONENT, "selecting voice \'" + voiceName + "\'");
-		params=new SynthesisParameters();
-		setDefaultPitch(curPitch);
-		setDefaultRate(curRate);
-		params.setVoiceProfile(voiceName);
-		params.setSSMLMode(true);
-    return initAudioOutput();
+	if (voiceName.isEmpty())
+	{
+	    Log.error(LOG_COMPONENT, "unable to choose suitable voice");
+	    return false;
+	}
+	Log.debug(LOG_COMPONENT, "selecting voice \'" + voiceName + "\'");
+	params=new SynthesisParameters();
+	setDefaultPitch(curPitch);
+	setDefaultRate(curRate);
+	params.setVoiceProfile(voiceName);
+	params.setSSMLMode(true);
+	return initAudioOutput();
     }
 
-private boolean initAudioOutput()
-{
-    try {
-			audioFormat  =  new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
-Short.SIZE, 1, (1 * Short.SIZE / 8), FRAME_RATE, false);
-	        final DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-			audioLine = (SourceDataLine) AudioSystem.getLine(info);
-	        audioLine.open(audioFormat,AUDIO_LINE_BUFFER_SIZE);
-	        audioLine.start();
-		return true;
-		} 
-catch(Exception e)
-		{
-		    Log.error(LOG_COMPONENT, "unable to init audio line:" + e.getClass().getName() + ":" + e.getMessage());
-		    return false;
-		}
-}
+    private boolean initAudioOutput()
+    {
+	try {
+	    audioFormat  =  new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
+					    Short.SIZE, 1, (1 * Short.SIZE / 8), FRAME_RATE, false);
+	    final DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
+	    audioLine = (SourceDataLine) AudioSystem.getLine(info);
+	    audioLine.open(audioFormat,AUDIO_LINE_BUFFER_SIZE);
+	    audioLine.start();
+	    return true;
+	} 
+	catch(Exception e)
+	{
+	    Log.error(LOG_COMPONENT, "unable to init audio line:" + e.getClass().getName() + ":" + e.getMessage());
+	    return false;
+	}
+    }
 
     private String suggestVoice()
     {
-			String voiceRu = null;
-			String voiceEn = null;
-			final List<VoiceInfo> voices = tts.getVoices();
-			for(VoiceInfo voice: voices)
-			{
-			    Log.debug(LOG_COMPONENT, "available voice:" + voice.getName() + 
-", lang:" +voice.getLanguage().getName() + 
-" (a2s:" + voice.getLanguage().getAlpha2Code() +
-",a2c:" + voice.getLanguage().getAlpha2CountryCode() +
-",a3s:"+voice.getLanguage().getAlpha3Code() +
-",a2c:"+voice.getLanguage().getAlpha3CountryCode() +
-")");
-				if(voiceRu == null && voice.getLanguage().getName().equals("Russian")) 
-voiceRu = voice.getName();
-				if(voiceEn == null && voice.getLanguage().getName().equals("English")) 
-voiceEn = voice.getName();
-			}
-			if(voiceRu == null && voiceEn == null)
-			{
-			    Log.warning(LOG_COMPONENT, "no voices neither Russian nor English");
-			    return "";
-			}
-			if(voiceRu == null)
-return voiceEn;
-if(voiceEn == null)
-return voiceRu;
-return voiceRu + "+" + voiceEn;
-		}
-
-    /** thread to speak can be restarted or looped (if last speak was stopped by new speak or silence)
-     * 
-     **/
-    class SpeakingThread implements Runnable
-    {
-    	Listener listener;
-    	Thread thread;
-    	String text=null;
-    	public boolean dobreak=false;
-    	public SpeakingThread()
-    	{
-			//thread=new Thread(threadRun);
-    	}
-    	public void speak(String text,Listener listener)
-    	{
-    		this.listener=listener;
-    		this.text=text;
-			if(thread==null||!thread.isAlive())
-			{
-				thread=new Thread(threadRun);
-				thread.start();
-			} else
-			{
-				// TODO: check it in multithreading
-    			dobreak=true;
-			}
-    	}
-		@Override public void run()
-		{
-			while(text!=null)
-			{
-				try
-				{
-					tts.speak(text,params,new TTSClient()
-					{
-						@Override public boolean playSpeech(short[] samples)
-						{
-							try
-							{
-						        final ByteBuffer buffer=ByteBuffer.allocate(samples.length*audioFormat.getFrameSize());
-						        buffer.order(ByteOrder.LITTLE_ENDIAN);
-						        buffer.asShortBuffer().put(samples);
-						        final byte[] bytes=buffer.array();
-						        // here execution would paused, if audioLine buffer is full
-						        audioLine.write(bytes,0,bytes.length);
-						        
-						        if(threadRun.dobreak)
-						        {
-						        	audioLine.flush();
-						        	return false;
-						        }
-						        
-							} catch(Exception e)
-							{
-								Log.error("rhvoice", "unable to speak");
-								e.printStackTrace();
-								return false;
-							}
-							return true;
-						}
-					});
-					// we need to set text to null if it is not break (if dobreak=true , text have new message to speak)
-					if(!dobreak)
-						text=null;
-					dobreak=false;
-					// finish speaking buffer
-			        audioLine.drain();
-			        //audioLine.close();
-			        if(listener!=null) listener.onFinished(-1);
-				} catch(RHVoiceException e)
-				{
-					if(listener!=null) listener.onFinished(-1);
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					// to avoid spam errors to log too fast
-					try {Thread.sleep(500);} catch(InterruptedException e1){}
-					return;
-				}
-			}
-			// we close thread if nothing to speak
-		}
+	String voiceRu = null;
+	String voiceEn = null;
+	final List<VoiceInfo> voices = tts.getVoices();
+	for(VoiceInfo voice: voices)
+	{
+	    Log.debug(LOG_COMPONENT, "available voice:" + voice.getName() + 
+		      ", lang:" +voice.getLanguage().getName() + 
+		      " (a2s:" + voice.getLanguage().getAlpha2Code() +
+		      ",a2c:" + voice.getLanguage().getAlpha2CountryCode() +
+		      ",a3s:"+voice.getLanguage().getAlpha3Code() +
+		      ",a2c:"+voice.getLanguage().getAlpha3CountryCode() +
+		      ")");
+	    if(voiceRu == null && voice.getLanguage().getName().equals("Russian")) 
+		voiceRu = voice.getName();
+	    if(voiceEn == null && voice.getLanguage().getName().equals("English")) 
+		voiceEn = voice.getName();
+	}
+	if(voiceRu == null && voiceEn == null)
+	{
+	    Log.warning(LOG_COMPONENT, "no voices neither Russian nor English");
+	    return "";
+	}
+	if(voiceRu == null)
+	    return voiceEn;
+	if(voiceEn == null)
+	    return voiceRu;
+	return voiceRu + "+" + voiceEn;
     }
-    SpeakingThread threadRun=new SpeakingThread();
+    
+
     
     @Override public org.luwrain.speech.Voice[] getVoices()
     {
@@ -276,7 +196,7 @@ return voiceRu + "+" + voiceEn;
 	// make text string to xml with pitch change for uppercase
 	// todo:add support for cancelPrevious=false 
    	params.setSSMLMode(false);
-	threadRun.speak(text,listener);
+	threadRun.speak(text,listener, params, tts, audioFormat, audioLine);
 	// 
 	if(relPitch!=0)
     	setDefaultPitch(defPitch);
@@ -296,7 +216,7 @@ return voiceRu + "+" + voiceEn;
    	// make text string to xml with pitch change for uppercase
    	// todo:add support for cancelPrevious=false
    	params.setSSMLMode(true);
-   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER),listener);
+   	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener, params, tts, audioFormat, audioLine);
    	// 
    	if(relPitch!=0)
        	setDefaultPitch(defPitch);
@@ -315,7 +235,7 @@ return voiceRu + "+" + voiceEn;
     @Override public void silence()
     {
     	threadRun.text=null;
-    	threadRun.dobreak=true;
+    	threadRun.interrupt = true;
     }
 
     @Override public AudioFormat[] getSynthSupportedFormats()
