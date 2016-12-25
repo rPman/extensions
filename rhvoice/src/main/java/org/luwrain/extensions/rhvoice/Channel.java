@@ -53,72 +53,83 @@ class Channel implements org.luwrain.speech.Channel
     // currently args must contains single string - voice name
     @Override public boolean initByArgs(String[] args)
     {
-    	NullCheck.notEmptyArray(args,"rhvoice argument");
-    	// init tts	
-		try
-		{
+    	NullCheck.notNullItems(args,"rhvoice argument");
+	try {
 			Path currentRelativePath = Paths.get("");
 			String s = currentRelativePath.toAbsolutePath().toString();
-			System.out.println("Current relative path is: " + s);
-			
 			TTSEngine.init();
 			tts=new TTSEngine("rhvoice"+File.separator+"data","rhvoice"+File.separator+"config",new String[]{"data"+File.separator+"languages"+File.separator+"English","data"+File.separator+"languages"+File.separator+"Russian"},null);
-		} catch(RHVoiceException e)
+		} 
+catch(RHVoiceException e)
 		{
-			Log.error("rhvoice", "unable to create rhvoice tts speach engine");
+		    Log.error(LOG_COMPONENT, "rhvoice refuses to initialize:" + e.getClass().getName() + ":" + e.getMessage());
 			e.printStackTrace();
-			System.exit(0);
 			return false;
 		}
-		// select voice
-		String voiceName=args[0];
+		//Selecting the voice
+	final String voiceName = (args.length > 0 && !args[0].isEmpty())?args[0]:suggestVoice();
+    if (voiceName.isEmpty())
+    {
+	Log.error(LOG_COMPONENT, "unable to choose suitable voice");
+	return false;
+    }
+		Log.debug(LOG_COMPONENT, "selecting voice \'" + voiceName + "\'");
 		params=new SynthesisParameters();
 		setDefaultPitch(curPitch);
 		setDefaultRate(curRate);
-		//
-		if(voiceName.isEmpty())
-		{
-			// select first russian/english language from list
-			String ruVoice=null;
-			String enVoice=null;
-			List<VoiceInfo> voices=tts.getVoices();
-			for(VoiceInfo voice:voices)
-			{
-				Log.debug("rhvoice", "found voice: "+voice.getName()+", lang: "+voice.getLanguage().getName()+" (a2s:"+voice.getLanguage().getAlpha2Code()+",a2c:"+voice.getLanguage().getAlpha2CountryCode()+",a3s:"+voice.getLanguage().getAlpha3Code()+",a2c:"+voice.getLanguage().getAlpha3CountryCode()+")");
-				if(ruVoice==null&&voice.getLanguage().getName().equals("Russian")) ruVoice=voice.getName();
-				if(enVoice==null&&voice.getLanguage().getName().equals("English")) enVoice=voice.getName();
-			}
-			if(ruVoice==null&&enVoice==null)
-			{
-				Log.error("rhvoice", "can't find default voice with language Russian or English");
-				return false;
-			}
-			if(ruVoice==null)
-				voiceName=enVoice;
-			else if(enVoice==null)
-				voiceName=ruVoice;
-			else
-				voiceName=ruVoice+"+"+enVoice;
-		}
 		params.setVoiceProfile(voiceName);
 		params.setSSMLMode(true);
-		Log.debug("rhvoice", "selected voice: "+voiceName);
-    	// audio device and player
-		try
-		{
-			audioFormat = new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
+    return initAudioOutput();
+    }
+
+private boolean initAudioOutput()
+{
+    try {
+			audioFormat  =  new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
 Short.SIZE, 1, (1 * Short.SIZE / 8), FRAME_RATE, false);
-	        DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-			audioLine=(SourceDataLine) AudioSystem.getLine(info);
+	        final DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
+			audioLine = (SourceDataLine) AudioSystem.getLine(info);
 	        audioLine.open(audioFormat,AUDIO_LINE_BUFFER_SIZE);
 	        audioLine.start();
-		} catch(Exception e)
-		{
-			Log.error("rhvoice", "unable to init audio device");
-			e.printStackTrace();
-		}
 		return true;
-    }
+		} 
+catch(Exception e)
+		{
+		    Log.error(LOG_COMPONENT, "unable to init audio line:" + e.getClass().getName() + ":" + e.getMessage());
+		    return false;
+		}
+}
+
+    private String suggestVoice()
+    {
+			String voiceRu = null;
+			String voiceEn = null;
+			final List<VoiceInfo> voices = tts.getVoices();
+			for(VoiceInfo voice: voices)
+			{
+			    Log.debug(LOG_COMPONENT, "available voice:" + voice.getName() + 
+", lang:" +voice.getLanguage().getName() + 
+" (a2s:" + voice.getLanguage().getAlpha2Code() +
+",a2c:" + voice.getLanguage().getAlpha2CountryCode() +
+",a3s:"+voice.getLanguage().getAlpha3Code() +
+",a2c:"+voice.getLanguage().getAlpha3CountryCode() +
+")");
+				if(voiceRu == null && voice.getLanguage().getName().equals("Russian")) 
+voiceRu = voice.getName();
+				if(voiceEn == null && voice.getLanguage().getName().equals("English")) 
+voiceEn = voice.getName();
+			}
+			if(voiceRu == null && voiceEn == null)
+			{
+			    Log.warning(LOG_COMPONENT, "no voices neither Russian nor English");
+			    return "";
+			}
+			if(voiceRu == null)
+return voiceEn;
+if(voiceEn == null)
+return voiceRu;
+return voiceRu + "+" + voiceEn;
+		}
 
     /** thread to speak can be restarted or looped (if last speak was stopped by new speak or silence)
      * 
