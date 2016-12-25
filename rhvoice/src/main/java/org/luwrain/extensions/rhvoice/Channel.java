@@ -1,23 +1,12 @@
+
 package org.luwrain.extensions.rhvoice;
 
-import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import javax.sound.sampled.AudioFormat;
+import java.io.*;
+import java.nio.*;
+import java.nio.file.*;
+import javax.sound.sampled.*;
 import javax.sound.sampled.AudioFormat.Encoding;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.SourceDataLine;
-
-import org.luwrain.core.Log;
-import org.luwrain.core.NullCheck;
-import org.luwrain.core.Registry;
-import org.luwrain.core.RegistryProxy;
-import org.luwrain.speech.Channel;
-import org.luwrain.speech.Voice;
 
 import com.github.olga_yakovleva.rhvoice.RHVoiceException;
 import com.github.olga_yakovleva.rhvoice.SynthesisParameters;
@@ -25,43 +14,40 @@ import com.github.olga_yakovleva.rhvoice.TTSClient;
 import com.github.olga_yakovleva.rhvoice.TTSEngine;
 import com.github.olga_yakovleva.rhvoice.VoiceInfo;
 
-public class RHvoiceChannel implements Channel
-{
-	static private final int UPPER_CASE_PITCH_MODIFIER=30;
+import org.luwrain.core.*;
 
-	//static private final String RHVOICE_ENGINE_PREFIX = "--rhvoice-data-path=";
+class Channel implements org.luwrain.speech.Channel
+{
+    static private final String LOG_COMPONENT = "rhvoice";
+	static private final int UPPER_CASE_PITCH_MODIFIER = 30;
+
     static private final String RHVOICE_DATA_PATH = "rhvoice";
     static private final int COPY_WAV_BUF_SIZE=1024;
     static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
-	static final float RHVOICE_FRAME_RATE = 24000f; // 44100 samples/s
+	static final float FRAME_RATE = 24000f;
 
-    //private final RHvoiceChannel impl = new RHvoiceChannel();
     private int curPitch = 30;
     private int curRate = 60;
 
     private String name = "";
-    
-    private TTSEngine tts;
-    private SynthesisParameters params;
-    
-    private AudioFormat audioFormat;
-    private SourceDataLine audioLine;
-    
+
+    private TTSEngine tts = null;
+    private SynthesisParameters params = null;
+    private AudioFormat audioFormat = null;
+    private SourceDataLine audioLine = null;
+
     @Override public boolean initByRegistry(Registry registry, String path)
     {
-    	String voiceName;
-    	try {
-    	    final Settings options = RegistryProxy.create(registry, path, Settings.class);
-    	    name = options.getName(name);
-    	    voiceName=options.getVoiceName("");
-    	}
-    	catch (Exception e)
-    	{
-    	    Log.error("rhvoice", "unexpected error while initializing the speech channel:" + e.getMessage());
-    	    e.printStackTrace();
-    	    return false;
-    	}
-    	return initByArgs(new String[]{voiceName});
+	NullCheck.notNull(registry, "registry");
+	NullCheck.notEmpty(path, "path");
+	final Settings sett = Settings.create(registry, path);
+	name = sett.getName("");
+	if (name.trim().isEmpty())
+	{
+	    Log.error(LOG_COMPONENT, "channel in " + path + " does not have any name");
+	    return false;
+	}
+    	return initByArgs(new String[]{sett.getVoiceName("")});
     }
 
     // currently args must contains single string - voice name
@@ -120,7 +106,8 @@ public class RHvoiceChannel implements Channel
     	// audio device and player
 		try
 		{
-			audioFormat = new AudioFormat(Encoding.PCM_SIGNED,RHVOICE_FRAME_RATE,Short.SIZE,1,(1*Short.SIZE/8),RHVOICE_FRAME_RATE,false);
+			audioFormat = new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
+Short.SIZE, 1, (1 * Short.SIZE / 8), FRAME_RATE, false);
 	        DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
 			audioLine=(SourceDataLine) AudioSystem.getLine(info);
 	        audioLine.open(audioFormat,AUDIO_LINE_BUFFER_SIZE);
@@ -217,9 +204,9 @@ public class RHvoiceChannel implements Channel
     }
     SpeakingThread threadRun=new SpeakingThread();
     
-    @Override public Voice[] getVoices()
+    @Override public org.luwrain.speech.Voice[] getVoices()
     {
-    	Voice[] voices=new Voice[tts.getVoices().size()];
+    	org.luwrain.speech.Voice[] voices=new org.luwrain.speech.Voice[tts.getVoices().size()];
     	int i=0;
     	for(VoiceInfo voice:tts.getVoices())
     		voices[i++]=new RHVoice(voice.getName());
