@@ -19,12 +19,18 @@ import org.luwrain.core.*;
 class Channel implements org.luwrain.speech.Channel
 {
     static private final String LOG_COMPONENT = "rhvoice";
-	static private final int UPPER_CASE_PITCH_MODIFIER = 30;
+    	static private final int UPPER_CASE_PITCH_MODIFIER = 30;
 
-    static private final String RHVOICE_DATA_PATH = "rhvoice";
-    static private final int COPY_WAV_BUF_SIZE=1024;
-    static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
+    //    static private final String RHVOICE_DATA_PATH = "rhvoice";
+    //    static private final int COPY_WAV_BUF_SIZE=1024;
+        static final int AUDIO_LINE_BUFFER_SIZE=3200; // minimal req value is 3200 (1600 samples max give rhvoice and each one 2 byte size
 	static final float FRAME_RATE = 24000f;
+
+        final static double RHVOICE_RATE_MIN =0.5f;
+    final static double RHVOICE_RATE_MAX =2.0f;
+    final static double RHVOICE_PITCH_MIN=0.5f;
+    final static double RHVOICE_PITCH_MAX=2.0f;
+
 
     private int curPitch = 30;
     private int curRate = 60;
@@ -132,13 +138,11 @@ private final     SpeakingThread threadRun=new SpeakingThread();
 	    return voiceRu;
 	return voiceRu + "+" + voiceEn;
     }
-    
 
-    
     @Override public org.luwrain.speech.Voice[] getVoices()
     {
-    	org.luwrain.speech.Voice[] voices=new org.luwrain.speech.Voice[tts.getVoices().size()];
-    	int i=0;
+    	final org.luwrain.speech.Voice[] voices=new org.luwrain.speech.Voice[tts.getVoices().size()];
+    	int i = 0;
     	for(VoiceInfo voice:tts.getVoices())
     		voices[i++]=new RHVoice(voice.getName());
     	return voices;
@@ -165,10 +169,6 @@ private final     SpeakingThread threadRun=new SpeakingThread();
     	params.setPitch(convPitch(curPitch)); // todo: check it
     }
 
-    final static double RHVOICE_RATE_MIN =0.5f;
-    final static double RHVOICE_RATE_MAX =2.0f;
-    final static double RHVOICE_PITCH_MIN=0.5f;
-    final static double RHVOICE_PITCH_MAX=2.0f;
     /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
     private double convRate(int val100)
     { // 0.2 ... 5
@@ -187,6 +187,7 @@ private final     SpeakingThread threadRun=new SpeakingThread();
 
     @Override public long speak(String text,Listener listener,int relPitch,int relRate, boolean cancelPrevious)
     {
+	NullCheck.notNull(text, "text");
    	int defPitch=curPitch;
    	int defRate=curRate;
     if(relPitch!=0)
@@ -197,10 +198,9 @@ private final     SpeakingThread threadRun=new SpeakingThread();
 	// todo:add support for cancelPrevious=false 
    	params.setSSMLMode(false);
 	threadRun.speak(text,listener, params, tts, audioFormat, audioLine);
-	// 
-	if(relPitch!=0)
+	if(relPitch != 0)
     	setDefaultPitch(defPitch);
-	if(relRate!=0)
+	if(relRate != 0)
 		setDefaultRate(defRate);
 	return -1;
     }
@@ -217,13 +217,11 @@ private final     SpeakingThread threadRun=new SpeakingThread();
    	// todo:add support for cancelPrevious=false
    	params.setSSMLMode(true);
    	threadRun.speak(SSML.upperCasePitchControl(""+letter,UPPER_CASE_PITCH_MODIFIER), listener, params, tts, audioFormat, audioLine);
-   	// 
    	if(relPitch!=0)
        	setDefaultPitch(defPitch);
    	if(relRate!=0)
    		setDefaultRate(defRate);
    	return -1;
-	//return speak(""+letter,listener,relPitch,relRate,cancelPrevious);
     }
 
     @Override public boolean synth(String text,int pitch, int rate,
@@ -234,7 +232,7 @@ private final     SpeakingThread threadRun=new SpeakingThread();
 
     @Override public void silence()
     {
-    	threadRun.text=null;
+    	threadRun.text = null;
     	threadRun.interrupt = true;
     }
 
@@ -269,12 +267,12 @@ private final     SpeakingThread threadRun=new SpeakingThread();
     @Override public String getCurrentVoiceName()
     {
 	return params.getVoiceProfile();
-	// fixme, voice profile not voice, it can have multiple voice for different lang
     }
 
     @Override public void close()
     {
-    	// FIXME:
+	silence();
+	//FIXME:
     }
 
     private int limit100(int value)
