@@ -26,6 +26,7 @@ class SpeakingThread implements Runnable
 
     @Override public void run()
     {
+	Log.debug("problem", "text " + text);
 	synchronized(channel){
 	    try {
 		channel.tts.speak(text, channel.params, (samples)->{
@@ -35,6 +36,7 @@ class SpeakingThread implements Runnable
 			    buffer.asShortBuffer().put(samples);
 			    final byte[] bytes = buffer.array();
 			    //We can freeze there, if the audio line doesn't have necessary room for new data
+			    Log.debug("problem", "write");
 			    channel.audioLine.write(bytes, 0, bytes.length);
 			    if(interrupt)
 			    {
