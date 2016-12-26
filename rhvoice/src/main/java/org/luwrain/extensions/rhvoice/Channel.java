@@ -39,9 +39,6 @@ class Channel implements org.luwrain.speech.Channel
     //These variable are accessible for SpeakingThread
 TTSEngine tts = null;
 SynthesisParameters params = null;
-AudioFormat audioFormat = null;
-SourceDataLine audioLine = null;
-
     private SpeakingThread thread = null;
 
     @Override public boolean initByRegistry(Registry registry, String path)
@@ -103,24 +100,29 @@ SourceDataLine audioLine = null;
 	setDefaultRate(curRate);
 	params.setVoiceProfile(voiceName);
 	params.setSSMLMode(true);
-	return initAudioOutput();
+	return true;
     }
 
-    private boolean initAudioOutput()
+    AudioFormat createAudioFormat()
     {
+	return new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
+			       Short.SIZE, 1, (1 * Short.SIZE / 8), FRAME_RATE, false);
+    }
+
+    SourceDataLine createAudioLine(AudioFormat audioFormat)
+    {
+	NullCheck.notNull(audioFormat, "audioFormat");
 	try {
-	    audioFormat  =  new AudioFormat(Encoding.PCM_SIGNED, FRAME_RATE, 
-					    Short.SIZE, 1, (1 * Short.SIZE / 8), FRAME_RATE, false);
 	    final DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-	    audioLine = (SourceDataLine) AudioSystem.getLine(info);
+	    final SourceDataLine audioLine = (SourceDataLine) AudioSystem.getLine(info);
 	    audioLine.open(audioFormat,AUDIO_LINE_BUFFER_SIZE);
 	    audioLine.start();
-	    return true;
+	    return audioLine;
 	} 
 	catch(Exception e)
 	{
 	    Log.error(LOG_COMPONENT, "unable to init audio line:" + e.getClass().getName() + ":" + e.getMessage());
-	    return false;
+	    return null;
 	}
     }
 
