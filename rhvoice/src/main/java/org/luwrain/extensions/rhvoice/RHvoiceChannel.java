@@ -84,6 +84,11 @@ public class RHvoiceChannel implements Channel
 			System.exit(0);
 			return false;
 		}
+		// enumerate voices
+		for(VoiceInfo voice:tts.getVoices())
+		{
+			System.out.println("rhvoice: "+voice.getName()+", lang: "+voice.getLanguage().getName());
+		}
 		// select voice
 		String voiceName=args[0];
 		params=new SynthesisParameters();
@@ -253,7 +258,7 @@ public class RHvoiceChannel implements Channel
     final static double RHVOICE_PITCH_MAX=2.0f;
     /** convert rate from range 0..100 where 0 slowest, 100 fastest to sapi -10..+10 where -10 is fastest and +10 slowest */
     private double convRate(int val100)
-    { // 0.2 ... 5
+    { // 0.4 ... 2
     	return RHVOICE_RATE_MIN+(RHVOICE_RATE_MAX-RHVOICE_RATE_MIN)-(double)val100*(RHVOICE_RATE_MAX-RHVOICE_RATE_MIN)/100f;
     }
     private double convPitch(int val100)
