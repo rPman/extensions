@@ -20,7 +20,7 @@ class SpeechFactory implements Factory
 
     @Override public Channel newChannel()
     {
-    	return new RHvoiceChannel();
+    	return new Channel();
     }
 
     @Override public org.luwrain.cpanel.Section newSettingsSection(org.luwrain.cpanel.Element el, String registryPath)

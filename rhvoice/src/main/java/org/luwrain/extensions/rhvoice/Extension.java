@@ -1,5 +1,5 @@
-package org.luwrain.extensions.rhvoice;
 
+package org.luwrain.extensions.rhvoice;
 
 import org.luwrain.core.*;
 import org.luwrain.core.extensions.*;
