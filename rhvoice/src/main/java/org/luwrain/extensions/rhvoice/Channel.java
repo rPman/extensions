@@ -66,7 +66,7 @@ SourceDataLine audioLine = null;
 	try {
 	    System.loadLibrary("RHVoice_core");
 	}
-	catch(Exception e)
+	catch(Exception|UnsatisfiedLinkError e)
 	{
 	    Log.warning(LOG_COMPONENT, "unable to load RHVoice_core:" + e.getClass().getName() + ":" + e.getMessage());
 	}
