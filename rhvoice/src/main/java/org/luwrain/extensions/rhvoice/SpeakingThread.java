@@ -26,19 +26,26 @@ class SpeakingThread implements Runnable
 
     @Override public void run()
     {
+	//	Log.debug("problem", "text " + text);
 	synchronized(channel){
+	final AudioFormat audioFormat = channel.createAudioFormat();
+	final SourceDataLine audioLine = channel.createAudioLine(audioFormat);
+	if (audioLine == null)
+	    return;
+	try {
 	    try {
 		channel.tts.speak(text, channel.params, (samples)->{
 			try {
-			    final ByteBuffer buffer=ByteBuffer.allocate(samples.length * channel.audioFormat.getFrameSize());
+			    final ByteBuffer buffer=ByteBuffer.allocate(samples.length * audioFormat.getFrameSize());
 			    buffer.order(ByteOrder.LITTLE_ENDIAN);
 			    buffer.asShortBuffer().put(samples);
 			    final byte[] bytes = buffer.array();
 			    //We can freeze there, if the audio line doesn't have necessary room for new data
-			    channel.audioLine.write(bytes, 0, bytes.length);
+			    //			    Log.debug("problem", "write");
+			    audioLine.write(bytes, 0, bytes.length);
 			    if(interrupt)
 			    {
-				channel.audioLine.flush();
+audioLine.flush();
 				return false;
 			    }
 			}
@@ -51,7 +58,7 @@ class SpeakingThread implements Runnable
 			return true;
 		    });
 		if (!interrupt)
-		    channel.audioLine.drain();
+		    audioLine.drain();
 		if(listener != null) 
 		    listener.onFinished(-1);
 	    } 
@@ -62,6 +69,11 @@ class SpeakingThread implements Runnable
 		Log.error("rhvoice", "rhvoice error:" + e.getClass().getName() + ":" + e.getMessage());
 		return;
 	    }
+	}
+	finally {
+	    audioLine.stop();
+	    audioLine.close();
+	}
 	}
     }
 }
